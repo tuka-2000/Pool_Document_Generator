@@ -143,11 +143,13 @@
         color: var(--danger);
         font-size: 13px;
         margin-top: 10px;
+        white-space: pre-wrap;
       }
       .status {
         color: var(--muted);
         font-size: 13px;
         margin-top: 10px;
+        white-space: pre-wrap;
       }
       .downloads {
         margin-top: 12px;
@@ -183,10 +185,17 @@
         font-size: 12px;
         color: var(--muted);
         margin-top: 8px;
+        line-height: 1.35;
       }
       .mono {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
           "Liberation Mono", "Courier New", monospace;
+      }
+      .smallbtn {
+        padding: 10px 12px;
+      }
+      .warn {
+        color: #ffd27d;
       }
     </style>
   </head>
@@ -195,10 +204,10 @@
     <div class="container">
       <h1>Pool Document Generator</h1>
       <div class="sub">
-        This is a <b>no-build</b> static site. You can deploy it on GitHub Pages by simply adding this
-        file (<span class="mono">index.html</span>) to your repo.
+        This is a <b>no-build</b> static site.
         <br />
-        It will load your 4 DOCX templates and replace placeholders like <span class="mono">{{VESSEL_NAME}}</span>.
+        It will load your 4 DOCX templates and replace placeholders like
+        <span class="mono">{{VESSEL_NAME}}</span>.
       </div>
 
       <div class="card">
@@ -227,14 +236,21 @@
       <div class="card">
         <h2>Section 3: Participant/Owner Information</h2>
         <label for="participantName">Participant/Owner Name <span class="req">*</span></label>
-        <input id="participantName" type="text" placeholder="Full legal name of participant/owner company" required />
+        <input
+          id="participantName"
+          type="text"
+          placeholder="Full legal name of participant/owner company"
+          required
+        />
         <div class="help">Used in: Pool Agreement, TCP, TPC Warranty</div>
 
         <div class="hr"></div>
 
         <label for="participantAddress">Participant Address</label>
         <textarea id="participantAddress" placeholder="Complete registered address"></textarea>
-        <div class="help" id="countryHelp">Used in: Pool Agreement, TCP • Country detected for TCP: (not detected)</div>
+        <div class="help" id="countryHelp">
+          Used in: Pool Agreement, TCP • Country detected for TCP: (not detected)
+        </div>
 
         <div class="hr"></div>
 
@@ -341,7 +357,9 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
           </div>
 
           <div>
-            <div style="font-weight: 650; margin-bottom: 8px;">Consumption (MT/day) <span class="req">*</span></div>
+            <div style="font-weight: 650; margin-bottom: 8px;">
+              Consumption (MT/day) <span class="req">*</span>
+            </div>
 
             <label for="lfc">Laden Full Consumption <span class="req">*</span></label>
             <input id="lfc" type="number" step="0.1" placeholder="e.g., 78.5" required />
@@ -378,6 +396,7 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         <div class="btnrow">
           <button id="generateBtn" class="primary" type="button">Generate All 4 Documents</button>
           <button id="clearBtn" class="secondary" type="button">Clear Downloads</button>
+          <button id="checkBtn" class="secondary smallbtn" type="button">Check Template Links</button>
         </div>
 
         <div id="error" class="error" style="display: none;"></div>
@@ -386,35 +405,78 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         <div id="downloads" class="downloads" style="display: none;"></div>
 
         <div class="note">
-          Note: Many browsers block multiple auto-downloads. This page generates the documents and then
-          shows 4 download buttons (one click each, reliable).
+          <span class="warn">If you see a 404 for a template:</span> it usually means the file is not in the
+          same folder as <span class="mono">index.html</span> on GitHub Pages.
+          This page now tries multiple locations automatically:
+          <span class="mono">(same folder → ./same folder → templates/ → GitHub raw)</span>.
+        </div>
+
+        <div class="note">
+          <span class="warn">If you see "docxtemplater is not a constructor":</span> your browser loaded a
+          build where the constructor is exposed under a different name (for example
+          <span class="mono">window.docxtemplater.default</span>). This page now auto-detects the constructor.
         </div>
       </div>
 
       <div class="sub" style="margin-top: 18px;">
-        Templates are fetched from this repo (same-origin when deployed on GitHub Pages).
+        Templates are fetched from this repo (same-origin when deployed on GitHub Pages), with a fallback to
+        GitHub raw URLs.
       </div>
     </div>
 
     <!-- Libraries (browser usage) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.67.6/docxtemplater.js"></script>
+    <!-- Official docs show the cdnjs build; we keep it, but our code auto-detects the constructor shape. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.66.4/docxtemplater.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pizzip@3.2.0/dist/pizzip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pizzip@3.2.0/dist/pizzip-utils.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.js"></script>
 
     <script>
-      // --------- Template URLs (relative to where this index.html is hosted) ---------
+      // ---------------------------------------------------------------------------
+      // Templates
+      // ---------------------------------------------------------------------------
+      // 404 happens when the template files are not reachable at the relative URL.
+      // To be resilient (especially in previews / when files live under /templates),
+      // we try multiple candidate URLs and fall back to raw.githubusercontent.com.
+
+      const REPO_RAW_BASE =
+        "https://raw.githubusercontent.com/tuka-2000/Pool_Document_Generator/main/";
+
+      // IMPORTANT:
+      // - `file` is the URL-encoded filename (spaces encoded as %20)
+      // - We will attempt:
+      //   1) file
+      //   2) ./file
+      //   3) templates/file
+      //   4) REPO_RAW_BASE + file
       const TEMPLATES = [
-        { key: "additional_clauses", label: "Additional Clauses", path: "Additional%20Clauses.docx", out: "Additional Clauses - {{VESSEL_NAME}}.docx" },
-        { key: "pool_agreement", label: "Pool Agreement", path: "Pool%20Agreement.docx", out: "Pool Agreement - {{VESSEL_NAME}}.docx" },
-        { key: "tcp", label: "TCP", path: "TCP.docx", out: "TCP - {{VESSEL_NAME}}.docx" },
-        { key: "tpc_warranty", label: "TPC Warranty", path: "TPC%20Warranty.docx", out: "TPC Warranty - {{VESSEL_NAME}}.docx" },
+        {
+          key: "additional_clauses",
+          label: "Additional Clauses",
+          file: "Additional%20Clauses.docx",
+          out: "Additional Clauses - {{VESSEL_NAME}}.docx",
+        },
+        {
+          key: "pool_agreement",
+          label: "Pool Agreement",
+          file: "Pool%20Agreement.docx",
+          out: "Pool Agreement - {{VESSEL_NAME}}.docx",
+        },
+        { key: "tcp", label: "TCP", file: "TCP.docx", out: "TCP - {{VESSEL_NAME}}.docx" },
+        {
+          key: "tpc_warranty",
+          label: "TPC Warranty",
+          file: "TPC%20Warranty.docx",
+          out: "TPC Warranty - {{VESSEL_NAME}}.docx",
+        },
       ];
 
       const el = (id) => document.getElementById(id);
 
       const state = {
         downloads: [], // { key, label, filename, blob, url }
+        docxtemplaterCtor: null,
+        docxtemplaterCtorLabel: null,
       };
 
       function setError(msg) {
@@ -441,7 +503,9 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
 
       function revokeDownloads() {
         for (const d of state.downloads) {
-          try { URL.revokeObjectURL(d.url); } catch (_) {}
+          try {
+            URL.revokeObjectURL(d.url);
+          } catch (_) {}
         }
         state.downloads = [];
       }
@@ -481,6 +545,101 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         }
       }
 
+      // ---------------------------------------------------------------------------
+      // Library health checks
+      // ---------------------------------------------------------------------------
+
+      function describeValue(v) {
+        if (v === null) return "null";
+        if (v === undefined) return "undefined";
+        const t = typeof v;
+        if (t === "function") return "function";
+        if (t !== "object") return t;
+        try {
+          return `object keys=[${Object.keys(v).slice(0, 15).join(",")}${Object.keys(v).length > 15 ? ",…" : ""}]`;
+        } catch (_) {
+          return "object";
+        }
+      }
+
+      function pickDocxtemplaterConstructorFromGlobals(globals) {
+        // We keep this function pure so we can unit-test it.
+        // It returns { ctor, label } or null.
+        const candidates = [];
+
+        const direct = globals && globals.docxtemplater;
+        if (typeof direct === "function") {
+          candidates.push({ ctor: direct, label: "window.docxtemplater" });
+        }
+
+        // Some bundles expose { default: Docxtemplater } or { Docxtemplater: Docxtemplater }
+        if (direct && typeof direct === "object") {
+          for (const key of ["default", "Docxtemplater", "docxtemplater"]) {
+            if (typeof direct[key] === "function") {
+              candidates.push({ ctor: direct[key], label: `window.docxtemplater.${key}` });
+            }
+          }
+          // As a last resort, scan function-valued keys
+          try {
+            for (const [k, v] of Object.entries(direct)) {
+              if (typeof v === "function") {
+                candidates.push({ ctor: v, label: `window.docxtemplater.${k}` });
+              }
+            }
+          } catch (_) {}
+        }
+
+        const alt = globals && globals.Docxtemplater;
+        if (typeof alt === "function") {
+          candidates.push({ ctor: alt, label: "window.Docxtemplater" });
+        }
+
+        // Historical name used in some builds (old docxtemplater-build repo)
+        const docxgen = globals && globals.Docxgen;
+        if (typeof docxgen === "function") {
+          candidates.push({ ctor: docxgen, label: "window.Docxgen" });
+        }
+
+        // Prefer stable labels first
+        const preferred = [
+          "window.docxtemplater",
+          "window.Docxtemplater",
+          "window.docxtemplater.default",
+          "window.docxtemplater.Docxtemplater",
+          "window.Docxgen",
+        ];
+
+        for (const p of preferred) {
+          const hit = candidates.find((c) => c.label === p);
+          if (hit) return hit;
+        }
+        return candidates[0] || null;
+      }
+
+      function ensureDocxtemplaterConstructor() {
+        if (state.docxtemplaterCtor) return state.docxtemplaterCtor;
+
+        const found = pickDocxtemplaterConstructorFromGlobals(window);
+        if (!found) {
+          const msg =
+            "Docxtemplater library is not available in this page.\n\n" +
+            "Troubleshooting:\n" +
+            "• If you are testing on a corporate network, cdnjs may be blocked.\n" +
+            "• Confirm this page can reach https://cdnjs.cloudflare.com/... in the browser.\n" +
+            "• If blocked, we can self-host the JS files in the repo.\n\n" +
+            `Diagnostics: window.docxtemplater=${describeValue(window.docxtemplater)}, window.Docxtemplater=${describeValue(window.Docxtemplater)}`;
+          throw new Error(msg);
+        }
+
+        state.docxtemplaterCtor = found.ctor;
+        state.docxtemplaterCtorLabel = found.label;
+        return found.ctor;
+      }
+
+      // ---------------------------------------------------------------------------
+      // Helpers
+      // ---------------------------------------------------------------------------
+
       function londonIsoToday() {
         // YYYY-MM-DD in London time
         const parts = new Intl.DateTimeFormat("en-CA", {
@@ -489,9 +648,9 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
           month: "2-digit",
           day: "2-digit",
         }).formatToParts(new Date());
-        const y = parts.find(p => p.type === "year").value;
-        const m = parts.find(p => p.type === "month").value;
-        const d = parts.find(p => p.type === "day").value;
+        const y = parts.find((p) => p.type === "year").value;
+        const m = parts.find((p) => p.type === "month").value;
+        const d = parts.find((p) => p.type === "day").value;
         return `${y}-${m}-${d}`;
       }
 
@@ -526,9 +685,15 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
       function getCountryFromAddress(address) {
         const raw = (address || "").trim();
         if (!raw) return "";
-        const lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+        const lines = raw
+          .split(/\r?\n/)
+          .map((s) => s.trim())
+          .filter(Boolean);
         const lastLine = lines[lines.length - 1] || "";
-        const commaParts = lastLine.split(",").map(s => s.trim()).filter(Boolean);
+        const commaParts = lastLine
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
         return commaParts[commaParts.length - 1] || lastLine;
       }
 
@@ -537,7 +702,12 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         return pattern.replace("{{VESSEL_NAME}}", safeVessel);
       }
 
-      function loadBinary(url) {
+      function candidateTemplateUrls(file) {
+        // Keep ordering: most likely first.
+        return [file, `./${file}`, `templates/${file}`, `${REPO_RAW_BASE}${file}`];
+      }
+
+      function loadBinaryFromUrl(url) {
         return new Promise((resolve, reject) => {
           PizZipUtils.getBinaryContent(url, (err, content) => {
             if (err) reject(err);
@@ -546,16 +716,46 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         });
       }
 
+      async function loadTemplateBinary(tpl) {
+        const urls = candidateTemplateUrls(tpl.file);
+        let lastErr = null;
+
+        for (const url of urls) {
+          try {
+            const content = await loadBinaryFromUrl(url);
+            return { content, url };
+          } catch (err) {
+            lastErr = err;
+            const status = err && (err.status || err.statusCode);
+            if (status === 404) continue;
+            continue;
+          }
+        }
+
+        const status = lastErr && (lastErr.status || lastErr.statusCode);
+        const msg =
+          `Ajax error for ${tpl.file}: status ${status || "(unknown)"}. ` +
+          `Tried: ${urls.join(" | ")}. ` +
+          `\n\nFix: ensure the file exists in the same folder as index.html on GitHub Pages, ` +
+          `or place it under /templates/.`;
+        const e = new Error(msg);
+        e.cause = lastErr;
+        throw e;
+      }
+
+      // ---------------------------------------------------------------------------
+      // Template data mapping
+      // ---------------------------------------------------------------------------
+
       function buildDataForDoc(docKey, inputs) {
         const agreementDate = formatLongLondonDate(inputs.agreementDateIso);
 
         const appendix2DateForPoolAgreement = inputs.appendix2Applicable
-          ? (formatLongLondonDate(inputs.headTcpDateIso) || agreementDate)
+          ? formatLongLondonDate(inputs.headTcpDateIso) || agreementDate
           : agreementDate;
 
-        const agreementDateAppendix2 = (docKey === "pool_agreement")
-          ? appendix2DateForPoolAgreement
-          : agreementDate;
+        const agreementDateAppendix2 =
+          docKey === "pool_agreement" ? appendix2DateForPoolAgreement : agreementDate;
 
         const computedTimeCharterer = inputs.appendix2Applicable
           ? (inputs.timeCharterers || "").trim()
@@ -570,19 +770,20 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
           VESSEL_NAME: (inputs.vesselName || "").trim(),
           CLASSIFICATION_SOCIETY: docKey === "tcp" ? (inputs.classificationSociety || "").trim() : "",
 
-          PARTICIPANT_NAME: (docKey === "pool_agreement" || docKey === "tcp" || docKey === "tpc_warranty")
-            ? (inputs.participantName || "").trim()
-            : "",
-          PARTICIPANT_ADDRESS: (docKey === "pool_agreement" || docKey === "tcp")
-            ? (inputs.participantAddress || "").trim()
-            : "",
+          PARTICIPANT_NAME:
+            docKey === "pool_agreement" || docKey === "tcp" || docKey === "tpc_warranty"
+              ? (inputs.participantName || "").trim()
+              : "",
+          PARTICIPANT_ADDRESS:
+            docKey === "pool_agreement" || docKey === "tcp" ? (inputs.participantAddress || "").trim() : "",
           PARTICIPANT_COUNTRY: docKey === "tcp" ? participantCountry : "",
           NOTICE_DETAIL: docKey === "pool_agreement" ? (inputs.noticeDetail || "").trim() : "",
 
           TIME_CHARTERER_APPENDIX2: docKey === "pool_agreement" ? computedTimeCharterer : "",
 
           BANKING_DETAIL: docKey === "tcp" ? (inputs.bankingDetail || "").trim() : "",
-          INSURED_VALUE: docKey === "additional_clauses" ? normalizeWholeNumberWithSeparators(inputs.insuredValue) : "",
+          INSURED_VALUE:
+            docKey === "additional_clauses" ? normalizeWholeNumberWithSeparators(inputs.insuredValue) : "",
 
           LFS: docKey === "tpc_warranty" ? normalizeOneDecimal(inputs.lfs) : "",
           LFC: docKey === "tpc_warranty" ? normalizeOneDecimal(inputs.lfc) : "",
@@ -599,14 +800,29 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
 
       function generateDocxFromBinaryContent(binaryContent, data) {
         const zip = new PizZip(binaryContent);
-        const doc = new window.docxtemplater(zip, {
-          paragraphLoop: true,
-          linebreaks: true,
-          delimiters: { start: "{{", end: "}}" },
-          nullGetter: () => "",
-        });
+
+        const DocxtemplaterCtor = ensureDocxtemplaterConstructor();
+
+        let doc;
+        try {
+          doc = new DocxtemplaterCtor(zip, {
+            paragraphLoop: true,
+            linebreaks: true,
+            delimiters: { start: "{{", end: "}}" },
+            nullGetter: () => "",
+          });
+        } catch (e) {
+          // Extra diagnostics if a candidate isn't constructable.
+          const msg =
+            `Docxtemplater constructor failed (${state.docxtemplaterCtorLabel || "unknown"}).\n` +
+            `Original error: ${String(e && e.message ? e.message : e)}\n\n` +
+            `Diagnostics: window.docxtemplater=${describeValue(window.docxtemplater)}, window.Docxtemplater=${describeValue(window.Docxtemplater)}`;
+          const err = new Error(msg);
+          err.cause = e;
+          throw err;
+        }
+
         doc.render(data);
-        // Available in docxtemplater >= 3.62.0
         return doc.toBlob();
       }
 
@@ -629,7 +845,6 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         setError("");
         setStatus("");
 
-        // Clear old downloads
         revokeDownloads();
         renderDownloads();
 
@@ -667,15 +882,23 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         btn.disabled = true;
 
         try {
+          // Force constructor resolution early for a cleaner error.
+          const ctor = ensureDocxtemplaterConstructor();
+          setStatus(`Docxtemplater ready (${state.docxtemplaterCtorLabel}). Starting generation...`);
+          void ctor; // (lint friendly)
+
           const out = [];
 
           for (let i = 0; i < TEMPLATES.length; i++) {
             const t = TEMPLATES[i];
             setStatus(`(${i + 1}/${TEMPLATES.length}) Downloading template: ${t.label}...`);
 
-            const binaryContent = await loadBinary(t.path);
+            const { content: binaryContent, url: usedUrl } = await loadTemplateBinary(t);
 
-            setStatus(`(${i + 1}/${TEMPLATES.length}) Replacing placeholders: ${t.label}...`);
+            setStatus(
+              `(${i + 1}/${TEMPLATES.length}) Replacing placeholders: ${t.label}... (loaded from: ${usedUrl})`
+            );
+
             const data = buildDataForDoc(t.key, inputs);
             const blob = generateDocxFromBinaryContent(binaryContent, data);
 
@@ -689,9 +912,7 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
           setStatus("Done. Click Download for each file.");
         } catch (err) {
           console.error(err);
-          setError(
-            "Generation failed. If this only fails on GitHub Pages, check the Pages URL is correct and that templates are accessible. See console for details."
-          );
+          setError(String(err && err.message ? err.message : err));
         } finally {
           btn.disabled = false;
         }
@@ -704,13 +925,56 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         renderDownloads();
       }
 
+      async function onCheckTemplates() {
+        setError("");
+        setStatus("Checking template links...");
+
+        try {
+          // Also validate Docxtemplater availability during checks.
+          const found = pickDocxtemplaterConstructorFromGlobals(window);
+          if (!found) {
+            throw new Error(
+              "Docxtemplater is not available. This usually means the docxtemplater <script> failed to load (often a 404 due to a non-existent cdnjs version, or a blocked CDN). If needed, we can self-host the JS files in the repo."
+            );
+          }
+
+          for (let i = 0; i < TEMPLATES.length; i++) {
+            const t = TEMPLATES[i];
+            const urls = candidateTemplateUrls(t.file);
+            setStatus(`Checking: ${t.label}...`);
+
+            let okUrl = null;
+            for (const u of urls) {
+              try {
+                await loadBinaryFromUrl(u);
+                okUrl = u;
+                break;
+              } catch (e) {
+                const status = e && (e.status || e.statusCode);
+                if (status === 404) continue;
+                continue;
+              }
+            }
+
+            if (!okUrl) {
+              throw new Error(`Template not reachable: ${t.file} (tried: ${urls.join(" | ")})`);
+            }
+          }
+          setStatus(`All templates are reachable. Docxtemplater: ${found.label}`);
+        } catch (e) {
+          console.error(e);
+          setError(String(e && e.message ? e.message : e));
+          setStatus("");
+        }
+      }
+
       function init() {
-        // Default dates to London "today"
         const todayIso = londonIsoToday();
         el("agreementDate").value = todayIso;
         el("headTcpDate").value = todayIso;
-        el("agreementDateHelp").textContent =
-          `Used in: All documents • Output format: ${formatLongLondonDate(todayIso)}`;
+        el("agreementDateHelp").textContent = `Used in: All documents • Output format: ${formatLongLondonDate(
+          todayIso
+        )}`;
 
         el("agreementDate").addEventListener("change", () => {
           const iso = el("agreementDate").value;
@@ -740,12 +1004,41 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
 
         el("generateBtn").addEventListener("click", onGenerate);
         el("clearBtn").addEventListener("click", onClearDownloads);
+        el("checkBtn").addEventListener("click", onCheckTemplates);
+
+        // Initial diagnostics (non-fatal)
+        try {
+          const found = pickDocxtemplaterConstructorFromGlobals(window);
+          if (found) {
+            setStatus(`Docxtemplater detected: ${found.label}`);
+          } else {
+            setStatus(
+              "Docxtemplater not detected yet. If generation fails, click 'Check Template Links' for diagnostics."
+            );
+          }
+        } catch (_) {
+          // ignore
+        }
       }
 
-      // Very small self-tests
+      // ---------------------------------------------------------------------------
+      // Very small self-tests (keep existing, add new)
+      // ---------------------------------------------------------------------------
       console.assert(formatLongLondonDate("2025-06-01") === "01 June 2025", "date format");
       console.assert(normalizeOneDecimal("14") === "14.0", "one decimal");
       console.assert(normalizeWholeNumberWithSeparators("85000000") === "85,000,000", "separators");
+      console.assert(
+        candidateTemplateUrls("Additional%20Clauses.docx")[3] === REPO_RAW_BASE + "Additional%20Clauses.docx",
+        "candidateTemplateUrls raw fallback"
+      );
+
+      // New test: constructor picker should find 'default' if that's where the constructor lives
+      (function () {
+        function Fake() {}
+        const globals = { docxtemplater: { default: Fake } };
+        const picked = pickDocxtemplaterConstructorFromGlobals(globals);
+        console.assert(picked && picked.ctor === Fake, "constructor picker finds window.docxtemplater.default");
+      })();
 
       init();
     </script>
