@@ -283,8 +283,8 @@
           <div class="grid2">
             <div>
               <label for="headTcpDate">Head Time Charter Party Date</label>
-              <input id="headTcpDate" type="text" placeholder="" />
-              <div class="help">Used in: Pool Agreement</div>
+              <input id="headTcpDate" type="date" />
+              <div class="help" id="headTcpDateHelp">Used in: Pool Agreement</div>
             </div>
             <div>
               <label for="timeCharterers">Time Charterers</label>
@@ -752,9 +752,9 @@
         const appendix2On = !!inputs.appendix2Applicable;
         const todayLong = formatLongLondonDate(londonIsoToday());
 
-        const agreementDateAppendix2 = appendix2On
-          ? (inputs.headTcpDateText || "").trim() || todayLong
-          : "";
+        const headTcpLong = formatLongLondonDate(inputs.headTcpDateIso);
+
+        const agreementDateAppendix2 = appendix2On ? headTcpLong || todayLong : "";
 
         const timeChartererAppendix2 = appendix2On
           ? (inputs.timeCharterers || "").trim() || DEFAULT_TIME_CHARTERER
@@ -848,7 +848,7 @@
           participantAddress: el("participantAddress").value,
           noticeDetail: el("noticeDetail").value,
           appendix2Applicable: el("appendix2").checked,
-          headTcpDateText: el("headTcpDate").value,
+          headTcpDateIso: el("headTcpDate").value,
           timeCharterers: el("timeCharterers").value,
           bankingDetail: el("bankingDetail").value,
           insuredValue: el("insuredValue").value,
@@ -991,8 +991,8 @@
       function init() {
         const todayIso = londonIsoToday();
         el("agreementDate").value = todayIso;
-        el("headTcpDate").value = "";
-        el("headTcpDate").placeholder = formatLongLondonDate(todayIso);
+        el("headTcpDate").value = todayIso;
+        el("headTcpDateHelp").textContent = `Used in: Pool Agreement • Output format: ${formatLongLondonDate(todayIso)}`;
         el("agreementDateHelp").textContent = `Used in: All documents • Output format: ${formatLongLondonDate(
           todayIso
         )}`;
@@ -1000,6 +1000,13 @@
         el("agreementDate").addEventListener("change", () => {
           const iso = el("agreementDate").value;
           el("agreementDateHelp").textContent = `Used in: All documents • Output format: ${
+            formatLongLondonDate(iso) || "(select a date)"
+          }`;
+        });
+
+        el("headTcpDate").addEventListener("change", () => {
+          const iso = el("headTcpDate").value;
+          el("headTcpDateHelp").textContent = `Used in: Pool Agreement • Output format: ${
             formatLongLondonDate(iso) || "(select a date)"
           }`;
         });
@@ -1015,17 +1022,6 @@
           const v = normalizeWholeNumberWithSeparators(ev.target.value);
           ev.target.value = v;
         });
-
-        // Appendix 2 date: accept ISO (YYYY-MM-DD) and convert to long London date on blur
-        el("headTcpDate").addEventListener("blur", () => {
-          const head = el("headTcpDate");
-          const v = (head.value || "").trim();
-          if (!v) return;
-          if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-            head.value = formatLongLondonDate(v);
-          }
-        });
-
         // Format all Section 7 numeric fields to 1 decimal on blur
         const oneDecIds = ["lfs", "les", "bfs", "bes", "sss", "lfc", "lec", "bfc", "bec", "ssc"];
         for (const id of oneDecIds) {
@@ -1042,14 +1038,21 @@
           el("appendix2Fields").style.display = on ? "block" : "none";
 
           const head = el("headTcpDate");
-          head.placeholder = formatLongLondonDate(todayIso);
-
           const tc = el("timeCharterers");
+
+          // Default Appendix 2 date to today's London date (same behavior as Agreement Date)
           if (on) {
+            if (!head.value) head.value = todayIso;
             if (!tc.value || !tc.value.trim()) tc.value = DEFAULT_TIME_CHARTERER;
+
+            el("headTcpDateHelp").textContent = `Used in: Pool Agreement • Output format: ${formatLongLondonDate(
+              head.value
+            )}`;
           } else {
+            // Hidden + not used when unticked; clear to avoid confusion
             head.value = "";
             tc.value = "";
+            el("headTcpDateHelp").textContent = "Used in: Pool Agreement";
           }
         });
 
