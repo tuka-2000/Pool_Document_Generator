@@ -1,0 +1,1077 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pool Document Generator</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --card: #111a2e;
+        --text: #e8eefc;
+        --muted: #a8b3cf;
+        --border: rgba(255, 255, 255, 0.12);
+        --danger: #ff5a67;
+        --btn: #2b66ff;
+        --btnText: #ffffff;
+        --ok: #55d66e;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+          "Apple Color Emoji", "Segoe UI Emoji";
+        background: radial-gradient(1200px 900px at 20% 0%, #142046 0%, var(--bg) 55%);
+        color: var(--text);
+      }
+      .container {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      h1 {
+        font-size: 26px;
+        margin: 0 0 6px 0;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 18px;
+        line-height: 1.4;
+      }
+      .card {
+        background: rgba(17, 26, 46, 0.92);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+        margin: 14px 0;
+        box-shadow: 0 6px 22px rgba(0, 0, 0, 0.22);
+        backdrop-filter: blur(6px);
+      }
+      .card h2 {
+        font-size: 16px;
+        margin: 0 0 12px 0;
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      @media (min-width: 860px) {
+        .grid2 {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      .req {
+        color: var(--danger);
+        font-weight: 700;
+        margin-left: 6px;
+      }
+      input,
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+        padding: 10px 12px;
+        outline: none;
+        font-size: 14px;
+      }
+      textarea {
+        min-height: 90px;
+        resize: vertical;
+      }
+      input::placeholder,
+      textarea::placeholder {
+        color: rgba(232, 238, 252, 0.42);
+      }
+      .help {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 6px;
+        line-height: 1.35;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .row input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+      }
+      .hr {
+        height: 1px;
+        background: var(--border);
+        margin: 16px 0;
+      }
+      .btnrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      button {
+        border: none;
+        border-radius: 14px;
+        padding: 12px 14px;
+        font-weight: 650;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .primary {
+        background: var(--btn);
+        color: var(--btnText);
+        flex: 1;
+        min-width: 240px;
+      }
+      .secondary {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .error {
+        color: var(--danger);
+        font-size: 13px;
+        margin-top: 10px;
+        white-space: pre-wrap;
+      }
+      .status {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 10px;
+        white-space: pre-wrap;
+      }
+      .downloads {
+        margin-top: 12px;
+        display: grid;
+        gap: 10px;
+      }
+      .dlitem {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .dlmeta {
+        min-width: 0;
+      }
+      .dllabel {
+        font-size: 13px;
+        font-weight: 650;
+      }
+      .dlfile {
+        font-size: 12px;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 540px;
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+          "Courier New", monospace;
+      }
+      .smallbtn {
+        padding: 10px 12px;
+      }
+      .inlineResult {
+        font-size: 12px;
+        color: var(--muted);
+        user-select: none;
+      }
+      .inlineResult.ok {
+        color: var(--ok);
+      }
+      .inlineResult.bad {
+        color: var(--danger);
+      }
+
+      /* No spinners (we use text inputs for decimals, but keep this just in case) */
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type="number"] {
+        -moz-appearance: textfield;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>Pool Document Generator</h1>
+      <div class="sub">Fill in the fields below, then generate 4 updated DOCX documents.</div>
+
+      <div class="card">
+        <h2>Section 1: Agreement Date</h2>
+        <label for="agreementDate">Agreement Date <span class="req">*</span></label>
+        <input id="agreementDate" type="date" required />
+        <div class="help" id="agreementDateHelp">Used in: All documents</div>
+      </div>
+
+      <div class="card">
+        <h2>Section 2: Vessel Information</h2>
+        <div class="grid2">
+          <div>
+            <label for="vesselName">Vessel Name <span class="req">*</span></label>
+            <input id="vesselName" type="text" placeholder="e.g., MT PACIFIC VOYAGER" required />
+            <div class="help">Used in: All documents</div>
+          </div>
+          <div>
+            <label for="classSoc">Classification Society</label>
+            <input id="classSoc" type="text" placeholder="e.g., ABS, DNV, LR, NK" />
+            <div class="help">Used in: TCP</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Section 3: Participant/Owner Information</h2>
+        <label for="participantName">Participant/Owner Name <span class="req">*</span></label>
+        <input
+          id="participantName"
+          type="text"
+          placeholder="Full legal name of participant/owner company"
+          required
+        />
+        <div class="help">Used in: Pool Agreement, TCP, TPC Warranty</div>
+
+        <div class="hr"></div>
+
+        <label for="participantAddress">Participant Address (last line needs to be &quot;Country&quot; to be used in TCP)</label>
+        <textarea
+          id="participantAddress"
+          placeholder="Complete registered address.&#10;Last line must be &quot;Country&quot; (used in TCP)"
+        ></textarea>
+        <div class="help" id="countryHelp">Used in: Pool Agreement, TCP • TCP Country (from last line): (not detected)</div>
+
+        <div class="hr"></div>
+
+        <label for="noticeDetail">Notices Details</label>
+        <textarea
+          id="noticeDetail"
+          placeholder="Paste complete notices details here, e.g.:&#10;Attention: John Smith, Fleet Manager&#10;Email: fleet@company.com&#10;Tel: +65 1234 5678&#10;Fax: +65 1234 5678"
+        ></textarea>
+        <div class="help">Used in: Pool Agreement</div>
+      </div>
+
+      <div class="card">
+        <h2>Section 4: Appendix 2 – Disponent Owners</h2>
+        <div class="row">
+          <input id="appendix2" type="checkbox" />
+          <label for="appendix2" style="margin: 0;">Appendix 2 is applicable (vessel under head time charter)</label>
+        </div>
+
+        <div id="appendix2Fields" style="display: none; margin-top: 14px;">
+          <div class="grid2">
+            <div>
+              <label for="headTcpDate">Head Time Charter Party Date</label>
+              <input id="headTcpDate" type="text" placeholder="" />
+              <div class="help">Used in: Pool Agreement</div>
+            </div>
+            <div>
+              <label for="timeCharterers">Time Charterers</label>
+              <input id="timeCharterers" type="text" placeholder="Tankers International Limited" />
+              <div class="help">Used in: Pool Agreement</div>
+            </div>
+          </div>
+          <div class="help">
+            If unticked, Appendix 2 placeholders are left blank and the watermark shows &quot;Not applicable&quot;.
+            If ticked, Head Time Charter Party Date and Time Charterers will be used in the Pool Agreement.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Section 5: Banking Details</h2>
+        <label for="bankingDetail">Banking Details</label>
+        <textarea
+          id="bankingDetail"
+          placeholder="Paste complete banking details here, e.g.:&#10;Bank Name: HSBC Singapore&#10;Bank Address: 21, Collyer Quay, Singapore, 049320&#10;Account Number: 123-456789-001&#10;SWIFT Code: HSBCSGSG&#10;IBAN: GB29 NWBK 6016 1331 9268 19"
+        ></textarea>
+        <div class="help">Used in: TCP</div>
+      </div>
+
+      <div class="card">
+        <h2>Section 6: Insurance</h2>
+        <label for="insuredValue">Insured Value (USD)</label>
+        <input id="insuredValue" type="text" inputmode="numeric" placeholder="e.g.: 85,000,000" />
+        <div class="help">Used in: Additional Clauses</div>
+      </div>
+
+      <div class="card">
+        <h2>Section 7: Speed &amp; Consumption Warranties</h2>
+        <div class="help">Used in: TPC Warranty</div>
+
+        <div class="hr"></div>
+
+        <div class="grid2">
+          <div>
+            <div style="font-weight: 650; margin-bottom: 8px;">Speed (knots)</div>
+
+            <label for="lfs">Laden Full Speed</label>
+            <input id="lfs" type="text" inputmode="decimal" value="14.5" />
+            <div class="help">Placeholder: <span class="mono">{{LFS}}</span></div>
+
+            <div class="hr"></div>
+
+            <label for="les">Laden Economical Speed</label>
+            <input id="les" type="text" inputmode="decimal" value="12.5" />
+            <div class="help">Placeholder: <span class="mono">{{LES}}</span></div>
+
+            <div class="hr"></div>
+
+            <label for="bfs">Ballast Full Speed</label>
+            <input id="bfs" type="text" inputmode="decimal" value="15.5" />
+            <div class="help">Placeholder: <span class="mono">{{BFS}}</span></div>
+
+            <div class="hr"></div>
+
+            <label for="bes">Ballast Economical Speed</label>
+            <input id="bes" type="text" inputmode="decimal" value="12.5" />
+            <div class="help">Placeholder: <span class="mono">{{BES}}</span></div>
+
+            <div class="hr"></div>
+
+            <label for="sss">Super Slow Speed</label>
+            <input id="sss" type="text" inputmode="decimal" value="10.0" />
+            <div class="help">Placeholder: <span class="mono">{{SSS}}</span></div>
+          </div>
+
+          <div>
+            <div style="font-weight: 650; margin-bottom: 8px;">Consumption (MT/day) <span class="req">*</span></div>
+
+            <label for="lfc">Laden Full Consumption <span class="req">*</span></label>
+            <input id="lfc" type="text" inputmode="decimal" placeholder="e.g., 78.5" required />
+            <div class="help">Placeholder: <span class="mono">{{LFC}}</span></div>
+
+            <div class="hr"></div>
+
+            <label for="lec">Laden Economical Consumption <span class="req">*</span></label>
+            <input id="lec" type="text" inputmode="decimal" placeholder="e.g., 48.0" required />
+            <div class="help">Placeholder: <span class="mono">{{LEC}}</span></div>
+
+            <div class="hr"></div>
+
+            <label for="bfc">Ballast Full Consumption <span class="req">*</span></label>
+            <input id="bfc" type="text" inputmode="decimal" placeholder="e.g., 68.0" required />
+            <div class="help">Placeholder: <span class="mono">{{BFC}}</span></div>
+
+            <div class="hr"></div>
+
+            <label for="bec">Ballast Economical Consumption <span class="req">*</span></label>
+            <input id="bec" type="text" inputmode="decimal" placeholder="e.g., 45.0" required />
+            <div class="help">Placeholder: <span class="mono">{{BEC}}</span></div>
+
+            <div class="hr"></div>
+
+            <label for="ssc">Super Slow Consumption <span class="req">*</span></label>
+            <input id="ssc" type="text" inputmode="decimal" placeholder="e.g., 32.0" required />
+            <div class="help">Placeholder: <span class="mono">{{SSC}}</span></div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <!-- 1st line: Check templates + inline result -->
+        <div class="btnrow">
+          <button id="checkBtn" class="secondary smallbtn" type="button">Check Template Links</button>
+          <span id="checkInline" class="inlineResult"></span>
+        </div>
+
+        <!-- 2nd line: Generate -->
+        <div class="btnrow">
+          <button id="generateBtn" class="primary" type="button">Generate All 4 Documents</button>
+        </div>
+
+        <!-- ZIP download (shown after generation) -->
+        <div id="zipRow" class="btnrow" style="display: none;">
+          <button id="zipBtn" class="secondary" type="button">Download All (ZIP)</button>
+        </div>
+
+        <!-- 3rd line: Clear downloads -->
+        <div class="btnrow">
+          <button id="clearBtn" class="secondary" type="button">Clear Downloads</button>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="status" class="status" style="display: none;"></div>
+
+        <div id="downloads" class="downloads" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- Libraries (browser usage) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.66.4/docxtemplater.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.2.0/dist/pizzip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.2.0/dist/pizzip-utils.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+    <script>
+      // ---------------------------------------------------------------------------
+      // Templates
+      // ---------------------------------------------------------------------------
+
+      const REPO_RAW_BASE = "https://raw.githubusercontent.com/tuka-2000/Pool_Document_Generator/main/";
+      const DEFAULT_TIME_CHARTERER = "Tankers International Limited";
+
+      // Use escaped strings in RegExp constructors (never put real newlines inside JS literals).
+      const RE_NEWLINE = new RegExp("\\r?\\n");
+      const RE_NON_DIGITS = new RegExp("[^0-9]", "g");
+      const RE_SAFE_VESSEL = new RegExp("[^a-z0-9 _-]", "gi");
+      const RE_HAS_LETTER = new RegExp("[A-Za-z]");
+      const RE_TRAILING_POSTAL = new RegExp("\\s*[0-9][0-9\\s-]*$");
+
+      const TEMPLATES = [
+        {
+          key: "additional_clauses",
+          label: "Additional Clauses",
+          file: "Additional%20Clauses.docx",
+          out: "Additional Clauses - {{VESSEL_NAME}}.docx",
+        },
+        {
+          key: "pool_agreement",
+          label: "Pool Agreement",
+          file: "Pool%20Agreement.docx",
+          out: "Pool Agreement - {{VESSEL_NAME}}.docx",
+        },
+        { key: "tcp", label: "TCP", file: "TCP.docx", out: "TCP - {{VESSEL_NAME}}.docx" },
+        {
+          key: "tpc_warranty",
+          label: "TPC Warranty",
+          file: "TPC%20Warranty.docx",
+          out: "TPC Warranty - {{VESSEL_NAME}}.docx",
+        },
+      ];
+
+      const el = (id) => document.getElementById(id);
+
+      const state = {
+        downloads: [],
+        docxtemplaterCtor: null,
+        docxtemplaterCtorLabel: null,
+        lastVesselName: "",
+      };
+
+      function setError(msg) {
+        const e = el("error");
+        if (!msg) {
+          e.style.display = "none";
+          e.textContent = "";
+          return;
+        }
+        e.style.display = "block";
+        e.textContent = msg;
+      }
+
+      function setStatus(msg) {
+        const s = el("status");
+        if (!msg) {
+          s.style.display = "none";
+          s.textContent = "";
+          return;
+        }
+        s.style.display = "block";
+        s.textContent = msg;
+      }
+
+      function setCheckInline(text, kind) {
+        const c = el("checkInline");
+        c.textContent = text || "";
+        c.classList.remove("ok", "bad");
+        if (kind === "ok") c.classList.add("ok");
+        if (kind === "bad") c.classList.add("bad");
+      }
+
+      function revokeDownloads() {
+        for (const d of state.downloads) {
+          try {
+            URL.revokeObjectURL(d.url);
+          } catch (_) {}
+        }
+        state.downloads = [];
+      }
+
+      function setZipRowVisible(on) {
+        const row = el("zipRow");
+        if (!row) return;
+        row.style.display = on ? "flex" : "none";
+      }
+
+      function renderDownloads() {
+        const box = el("downloads");
+        box.innerHTML = "";
+
+        if (!state.downloads.length) {
+          box.style.display = "none";
+          setZipRowVisible(false);
+          return;
+        }
+
+        setZipRowVisible(true);
+        box.style.display = "grid";
+
+        for (const d of state.downloads) {
+          const wrap = document.createElement("div");
+          wrap.className = "dlitem";
+
+          const meta = document.createElement("div");
+          meta.className = "dlmeta";
+          const lbl = document.createElement("div");
+          lbl.className = "dllabel";
+          lbl.textContent = d.label;
+          const file = document.createElement("div");
+          file.className = "dlfile";
+          file.textContent = d.filename;
+          meta.appendChild(lbl);
+          meta.appendChild(file);
+
+          const btn = document.createElement("button");
+          btn.className = "secondary";
+          btn.textContent = "Download";
+          btn.onclick = () => saveAs(d.blob, d.filename);
+
+          wrap.appendChild(meta);
+          wrap.appendChild(btn);
+          box.appendChild(wrap);
+        }
+      }
+
+      // ---------------------------------------------------------------------------
+      // Library health checks
+      // ---------------------------------------------------------------------------
+
+      function pickDocxtemplaterConstructorFromGlobals(globals) {
+        const candidates = [];
+
+        const direct = globals && globals.docxtemplater;
+        if (typeof direct === "function") {
+          candidates.push({ ctor: direct, label: "window.docxtemplater" });
+        }
+
+        if (direct && typeof direct === "object") {
+          for (const key of ["default", "Docxtemplater", "docxtemplater"]) {
+            if (typeof direct[key] === "function") {
+              candidates.push({ ctor: direct[key], label: `window.docxtemplater.${key}` });
+            }
+          }
+          try {
+            for (const [k, v] of Object.entries(direct)) {
+              if (typeof v === "function") {
+                candidates.push({ ctor: v, label: `window.docxtemplater.${k}` });
+              }
+            }
+          } catch (_) {}
+        }
+
+        const alt = globals && globals.Docxtemplater;
+        if (typeof alt === "function") {
+          candidates.push({ ctor: alt, label: "window.Docxtemplater" });
+        }
+
+        const docxgen = globals && globals.Docxgen;
+        if (typeof docxgen === "function") {
+          candidates.push({ ctor: docxgen, label: "window.Docxgen" });
+        }
+
+        const preferred = [
+          "window.docxtemplater",
+          "window.Docxtemplater",
+          "window.docxtemplater.default",
+          "window.docxtemplater.Docxtemplater",
+          "window.Docxgen",
+        ];
+
+        for (const p of preferred) {
+          const hit = candidates.find((c) => c.label === p);
+          if (hit) return hit;
+        }
+        return candidates[0] || null;
+      }
+
+      function ensureDocxtemplaterConstructor() {
+        if (state.docxtemplaterCtor) return state.docxtemplaterCtor;
+
+        const found = pickDocxtemplaterConstructorFromGlobals(window);
+        if (!found) {
+          throw new Error(
+            "Docxtemplater library is not available in this page. Please make sure the page can load the Docxtemplater script (CDN not blocked), then try again."
+          );
+        }
+
+        state.docxtemplaterCtor = found.ctor;
+        state.docxtemplaterCtorLabel = found.label;
+        return found.ctor;
+      }
+
+      function ensureJSZip() {
+        if (typeof JSZip !== "function") {
+          throw new Error("JSZip library is not available. Please ensure the JSZip script can be loaded.");
+        }
+      }
+
+      // ---------------------------------------------------------------------------
+      // Helpers
+      // ---------------------------------------------------------------------------
+
+      function londonIsoToday() {
+        const parts = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Europe/London",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).formatToParts(new Date());
+        const y = parts.find((p) => p.type === "year").value;
+        const m = parts.find((p) => p.type === "month").value;
+        const d = parts.find((p) => p.type === "day").value;
+        return `${y}-${m}-${d}`;
+      }
+
+      function formatLongLondonDate(iso) {
+        if (!iso) return "";
+        const [y, m, d] = iso.split("-").map(Number);
+        const dt = new Date(Date.UTC(y, m - 1, d));
+        return new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Europe/London",
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        }).format(dt);
+      }
+
+      function normalizeOneDecimal(v) {
+        if (v === "" || v == null) return "";
+        const n = Number(String(v).trim());
+        if (!Number.isFinite(n)) return "";
+        return n.toFixed(1);
+      }
+
+      function normalizeWholeNumberWithSeparators(v) {
+        if (!v) return "";
+        const digits = String(v).replace(RE_NON_DIGITS, "");
+        if (!digits) return "";
+        const n = Number(digits);
+        if (!Number.isFinite(n)) return "";
+        return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(n);
+      }
+
+      function getCountryFromAddress(address) {
+        const raw = (address || "").trim();
+        if (!raw) return "";
+
+        // Per UI instruction: the LAST non-empty LINE should be the Country for TCP.
+        const lines = raw
+          .split(RE_NEWLINE)
+          .map((s) => String(s).trim())
+          .filter(Boolean);
+
+        const lastLine = lines[lines.length - 1] || "";
+        if (!lastLine) return "";
+
+        // If the last line contains commas, take the last meaningful token.
+        const parts = lastLine
+          .split(",")
+          .map((s) => String(s).trim())
+          .filter(Boolean);
+
+        for (let i = parts.length - 1; i >= 0; i--) {
+          const t = parts[i];
+          const cleaned = t.replace(RE_TRAILING_POSTAL, "").trim();
+          if (cleaned && RE_HAS_LETTER.test(cleaned)) return cleaned;
+          if (RE_HAS_LETTER.test(t)) return t;
+        }
+
+        return lastLine;
+      }
+
+      function safeFilename(pattern, vesselName) {
+        const safeVessel = (vesselName || "Vessel").replace(RE_SAFE_VESSEL, "");
+        return pattern.replace("{{VESSEL_NAME}}", safeVessel);
+      }
+
+      function candidateTemplateUrls(file) {
+        return [file, `./${file}`, `templates/${file}`, `${REPO_RAW_BASE}${file}`];
+      }
+
+      function loadBinaryFromUrl(url) {
+        return new Promise((resolve, reject) => {
+          PizZipUtils.getBinaryContent(url, (err, content) => {
+            if (err) reject(err);
+            else resolve(content);
+          });
+        });
+      }
+
+      async function loadTemplateBinary(tpl) {
+        const urls = candidateTemplateUrls(tpl.file);
+        let lastErr = null;
+
+        for (const url of urls) {
+          try {
+            const content = await loadBinaryFromUrl(url);
+            return { content, url };
+          } catch (err) {
+            lastErr = err;
+            const status = err && (err.status || err.statusCode);
+            if (status === 404) continue;
+            continue;
+          }
+        }
+
+        const status = lastErr && (lastErr.status || lastErr.statusCode);
+        throw new Error(
+          `Template not reachable: ${tpl.file} (status ${status || "unknown"}). Tried: ${urls.join(" | ")}`
+        );
+      }
+
+      // ---------------------------------------------------------------------------
+      // Template data mapping
+      // ---------------------------------------------------------------------------
+
+      function buildDataForDoc(docKey, inputs) {
+        const agreementDate = formatLongLondonDate(inputs.agreementDateIso);
+
+        const appendix2On = !!inputs.appendix2Applicable;
+        const todayLong = formatLongLondonDate(londonIsoToday());
+
+        const agreementDateAppendix2 = appendix2On
+          ? (inputs.headTcpDateText || "").trim() || todayLong
+          : "";
+
+        const timeChartererAppendix2 = appendix2On
+          ? (inputs.timeCharterers || "").trim() || DEFAULT_TIME_CHARTERER
+          : "";
+
+        const participantCountry = getCountryFromAddress(inputs.participantAddress);
+
+        const vesselName = (inputs.vesselName || "").trim();
+        const participantName = (inputs.participantName || "").trim();
+
+        return {
+          AGREEMENT_DATE: agreementDate,
+          AGREEMENT_DATE_APPENDIX2: agreementDateAppendix2,
+
+          VESSEL_NAME: vesselName,
+          VESSEL_NAME_APPENDIX2: appendix2On ? vesselName : "",
+
+          CLASSIFICATION_SOCIETY: docKey === "tcp" ? (inputs.classificationSociety || "").trim() : "",
+
+          PARTICIPANT_NAME:
+            docKey === "pool_agreement" || docKey === "tcp" || docKey === "tpc_warranty" ? participantName : "",
+          PARTICIPANT_NAME_APPENDIX2: appendix2On ? participantName : "",
+
+          PARTICIPANT_ADDRESS:
+            docKey === "pool_agreement" || docKey === "tcp" ? (inputs.participantAddress || "").trim() : "",
+          PARTICIPANT_COUNTRY: docKey === "tcp" ? participantCountry : "",
+          NOTICE_DETAIL: docKey === "pool_agreement" ? (inputs.noticeDetail || "").trim() : "",
+
+          TIME_CHARTERER_APPENDIX2: timeChartererAppendix2,
+          APPENDIX2_WATERMARK: appendix2On ? "" : "Not applicable",
+
+          BANKING_DETAIL: docKey === "tcp" ? (inputs.bankingDetail || "").trim() : "",
+          INSURED_VALUE:
+            docKey === "additional_clauses" ? normalizeWholeNumberWithSeparators(inputs.insuredValue) : "",
+
+          LFS: docKey === "tpc_warranty" ? normalizeOneDecimal(inputs.lfs) : "",
+          LFC: docKey === "tpc_warranty" ? normalizeOneDecimal(inputs.lfc) : "",
+          LES: docKey === "tpc_warranty" ? normalizeOneDecimal(inputs.les) : "",
+          LEC: docKey === "tpc_warranty" ? normalizeOneDecimal(inputs.lec) : "",
+          BFS: docKey === "tpc_warranty" ? normalizeOneDecimal(inputs.bfs) : "",
+          BFC: docKey === "tpc_warranty" ? normalizeOneDecimal(inputs.bfc) : "",
+          BES: docKey === "tpc_warranty" ? normalizeOneDecimal(inputs.bes) : "",
+          BEC: docKey === "tpc_warranty" ? normalizeOneDecimal(inputs.bec) : "",
+          SSS: docKey === "tpc_warranty" ? normalizeOneDecimal(inputs.sss) : "",
+          SSC: docKey === "tpc_warranty" ? normalizeOneDecimal(inputs.ssc) : "",
+        };
+      }
+
+      function generateDocxFromBinaryContent(binaryContent, data) {
+        const zip = new PizZip(binaryContent);
+
+        const DocxtemplaterCtor = ensureDocxtemplaterConstructor();
+        const doc = new DocxtemplaterCtor(zip, {
+          paragraphLoop: true,
+          linebreaks: true,
+          delimiters: { start: "{{", end: "}}" },
+          nullGetter: () => "",
+        });
+
+        doc.render(data);
+        return doc.toBlob();
+      }
+
+      function validateRequired(inputs) {
+        const missing = [];
+        if (!inputs.agreementDateIso) missing.push("Agreement Date");
+        if (!inputs.vesselName.trim()) missing.push("Vessel Name");
+        if (!inputs.participantName.trim()) missing.push("Participant/Owner Name");
+
+        if (!normalizeOneDecimal(inputs.lfc)) missing.push("Laden Full Consumption");
+        if (!normalizeOneDecimal(inputs.lec)) missing.push("Laden Economical Consumption");
+        if (!normalizeOneDecimal(inputs.bfc)) missing.push("Ballast Full Consumption");
+        if (!normalizeOneDecimal(inputs.bec)) missing.push("Ballast Economical Consumption");
+        if (!normalizeOneDecimal(inputs.ssc)) missing.push("Super Slow Consumption");
+
+        return missing;
+      }
+
+      async function onGenerate() {
+        setError("");
+        setStatus("");
+
+        revokeDownloads();
+        renderDownloads();
+
+        const inputs = {
+          agreementDateIso: el("agreementDate").value,
+          vesselName: el("vesselName").value,
+          classificationSociety: el("classSoc").value,
+          participantName: el("participantName").value,
+          participantAddress: el("participantAddress").value,
+          noticeDetail: el("noticeDetail").value,
+          appendix2Applicable: el("appendix2").checked,
+          headTcpDateText: el("headTcpDate").value,
+          timeCharterers: el("timeCharterers").value,
+          bankingDetail: el("bankingDetail").value,
+          insuredValue: el("insuredValue").value,
+          lfs: el("lfs").value,
+          lfc: el("lfc").value,
+          les: el("les").value,
+          lec: el("lec").value,
+          bfs: el("bfs").value,
+          bfc: el("bfc").value,
+          bes: el("bes").value,
+          bec: el("bec").value,
+          sss: el("sss").value,
+          ssc: el("ssc").value,
+        };
+
+        state.lastVesselName = (inputs.vesselName || "").trim();
+
+        const missing = validateRequired(inputs);
+        if (missing.length) {
+          setError("Please fill in all required fields (marked with *)");
+          return;
+        }
+
+        const btn = el("generateBtn");
+        btn.disabled = true;
+
+        try {
+          ensureDocxtemplaterConstructor();
+          ensureJSZip();
+
+          const out = [];
+
+          for (let i = 0; i < TEMPLATES.length; i++) {
+            const t = TEMPLATES[i];
+            setStatus(`(${i + 1}/${TEMPLATES.length}) Generating: ${t.label}...`);
+
+            const { content: binaryContent } = await loadTemplateBinary(t);
+            const data = buildDataForDoc(t.key, inputs);
+            const blob = generateDocxFromBinaryContent(binaryContent, data);
+
+            const filename = safeFilename(t.out, data.VESSEL_NAME);
+            const url = URL.createObjectURL(blob);
+            out.push({ key: t.key, label: t.label, filename, blob, url });
+          }
+
+          state.downloads = out;
+          renderDownloads();
+          setStatus("Done. Download each file, or use Download All (ZIP). ");
+        } catch (err) {
+          console.error(err);
+          setError(String(err && err.message ? err.message : err));
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      async function onDownloadZip() {
+        setError("");
+        if (!state.downloads.length) return;
+
+        const btn = el("zipBtn");
+        btn.disabled = true;
+
+        try {
+          ensureJSZip();
+          setStatus("Creating ZIP...");
+
+          const zip = new JSZip();
+          for (const d of state.downloads) {
+            zip.file(d.filename, d.blob);
+          }
+
+          const zipBlob = await zip.generateAsync({ type: "blob" });
+          const zipName = safeFilename("Pool Documents - {{VESSEL_NAME}}.zip", state.lastVesselName);
+          saveAs(zipBlob, zipName);
+          setStatus("ZIP downloaded.");
+        } catch (err) {
+          console.error(err);
+          setError(String(err && err.message ? err.message : err));
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      function onClearDownloads() {
+        setError("");
+        setStatus("");
+        revokeDownloads();
+        renderDownloads();
+      }
+
+      async function onCheckTemplates() {
+        setError("");
+        setStatus("");
+        setCheckInline("Checking...", "");
+
+        const btn = el("checkBtn");
+        btn.disabled = true;
+
+        try {
+          const found = pickDocxtemplaterConstructorFromGlobals(window);
+          if (!found) {
+            throw new Error(
+              "Docxtemplater library is not available. Please ensure the Docxtemplater script can be loaded."
+            );
+          }
+
+          for (let i = 0; i < TEMPLATES.length; i++) {
+            const t = TEMPLATES[i];
+            const urls = candidateTemplateUrls(t.file);
+
+            let ok = false;
+            for (const u of urls) {
+              try {
+                await loadBinaryFromUrl(u);
+                ok = true;
+                break;
+              } catch (e) {
+                const status = e && (e.status || e.statusCode);
+                if (status === 404) continue;
+                continue;
+              }
+            }
+
+            if (!ok) {
+              throw new Error(`Template not reachable: ${t.label} (${t.file})`);
+            }
+          }
+
+          setCheckInline("All templates reachable", "ok");
+        } catch (e) {
+          console.error(e);
+          setCheckInline("Check failed", "bad");
+          setError(String(e && e.message ? e.message : e));
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      function init() {
+        const todayIso = londonIsoToday();
+        el("agreementDate").value = todayIso;
+        el("headTcpDate").value = "";
+        el("headTcpDate").placeholder = formatLongLondonDate(todayIso);
+        el("agreementDateHelp").textContent = `Used in: All documents • Output format: ${formatLongLondonDate(
+          todayIso
+        )}`;
+
+        el("agreementDate").addEventListener("change", () => {
+          const iso = el("agreementDate").value;
+          el("agreementDateHelp").textContent = `Used in: All documents • Output format: ${
+            formatLongLondonDate(iso) || "(select a date)"
+          }`;
+        });
+
+        el("participantAddress").addEventListener("input", () => {
+          const c = getCountryFromAddress(el("participantAddress").value);
+          el("countryHelp").textContent = `Used in: Pool Agreement, TCP • TCP Country (from last line): ${
+            c || "(not detected)"
+          }`;
+        });
+
+        el("insuredValue").addEventListener("input", (ev) => {
+          const v = normalizeWholeNumberWithSeparators(ev.target.value);
+          ev.target.value = v;
+        });
+
+        // Appendix 2 date: accept ISO (YYYY-MM-DD) and convert to long London date on blur
+        el("headTcpDate").addEventListener("blur", () => {
+          const head = el("headTcpDate");
+          const v = (head.value || "").trim();
+          if (!v) return;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+            head.value = formatLongLondonDate(v);
+          }
+        });
+
+        // Format all Section 7 numeric fields to 1 decimal on blur
+        const oneDecIds = ["lfs", "les", "bfs", "bes", "sss", "lfc", "lec", "bfc", "bec", "ssc"];
+        for (const id of oneDecIds) {
+          const input = el(id);
+          if (!input) continue;
+          input.addEventListener("blur", () => {
+            const nv = normalizeOneDecimal(input.value);
+            if (nv) input.value = nv;
+          });
+        }
+
+        el("appendix2").addEventListener("change", () => {
+          const on = el("appendix2").checked;
+          el("appendix2Fields").style.display = on ? "block" : "none";
+
+          const head = el("headTcpDate");
+          head.placeholder = formatLongLondonDate(todayIso);
+
+          const tc = el("timeCharterers");
+          if (on) {
+            if (!tc.value || !tc.value.trim()) tc.value = DEFAULT_TIME_CHARTERER;
+          } else {
+            head.value = "";
+            tc.value = "";
+          }
+        });
+
+        el("timeCharterers").value = "";
+
+        el("generateBtn").addEventListener("click", onGenerate);
+        el("zipBtn").addEventListener("click", onDownloadZip);
+        el("clearBtn").addEventListener("click", onClearDownloads);
+        el("checkBtn").addEventListener("click", onCheckTemplates);
+
+        renderDownloads();
+      }
+
+      // ---------------------------------------------------------------------------
+      // Very small self-tests
+      // ---------------------------------------------------------------------------
+      // NOTE: These are optional. Keeping this block short avoids accidental truncation breaking the app.
+      console.assert(formatLongLondonDate("2025-06-01") === "01 June 2025", "date format");
+      console.assert(normalizeOneDecimal("14") === "14.0", "one decimal");
+      console.assert(normalizeWholeNumberWithSeparators("85000000") === "85,000,000", "separators");
+
+      init();
+    </script>
+  </body>
+</html>
