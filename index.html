@@ -14,11 +14,12 @@
         --danger: #ff5a67;
         --btn: #2b66ff;
         --btnText: #ffffff;
+        --ok: #55d66e;
       }
       body {
         margin: 0;
-        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
-          Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+          "Apple Color Emoji", "Segoe UI Emoji";
         background: radial-gradient(1200px 900px at 20% 0%, #142046 0%, var(--bg) 55%);
         color: var(--text);
       }
@@ -112,6 +113,7 @@
       }
       .btnrow {
         display: flex;
+        align-items: center;
         gap: 10px;
         flex-wrap: wrap;
         margin-top: 10px;
@@ -181,21 +183,33 @@
         white-space: nowrap;
         max-width: 540px;
       }
-      .note {
-        font-size: 12px;
-        color: var(--muted);
-        margin-top: 8px;
-        line-height: 1.35;
-      }
       .mono {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-          "Liberation Mono", "Courier New", monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+          "Courier New", monospace;
       }
       .smallbtn {
         padding: 10px 12px;
       }
-      .warn {
-        color: #ffd27d;
+      .inlineResult {
+        font-size: 12px;
+        color: var(--muted);
+        user-select: none;
+      }
+      .inlineResult.ok {
+        color: var(--ok);
+      }
+      .inlineResult.bad {
+        color: var(--danger);
+      }
+
+      /* No spinners (we use text inputs for decimals, but keep this just in case) */
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type="number"] {
+        -moz-appearance: textfield;
       }
     </style>
   </head>
@@ -203,12 +217,7 @@
   <body>
     <div class="container">
       <h1>Pool Document Generator</h1>
-      <div class="sub">
-        This is a <b>no-build</b> static site.
-        <br />
-        It will load your 4 DOCX templates and replace placeholders like
-        <span class="mono">{{VESSEL_NAME}}</span>.
-      </div>
+      <div class="sub">Fill in the fields below, then generate 4 updated DOCX documents.</div>
 
       <div class="card">
         <h2>Section 1: Agreement Date</h2>
@@ -257,11 +266,7 @@
         <label for="noticeDetail">Notices Details</label>
         <textarea
           id="noticeDetail"
-          placeholder="Paste complete notices details here, e.g.:
-Attention: John Smith, Fleet Manager
-Email: fleet@company.com
-Tel: +65 1234 5678
-Fax: +65 1234 5678"
+          placeholder="Paste complete notices details here, e.g.:&#10;Attention: John Smith, Fleet Manager&#10;Email: fleet@company.com&#10;Tel: +65 1234 5678&#10;Fax: +65 1234 5678"
         ></textarea>
         <div class="help">Used in: Pool Agreement</div>
       </div>
@@ -270,9 +275,7 @@ Fax: +65 1234 5678"
         <h2>Section 4: Appendix 2 – Disponent Owners</h2>
         <div class="row">
           <input id="appendix2" type="checkbox" />
-          <label for="appendix2" style="margin: 0;">
-            Appendix 2 is applicable (vessel under head time charter)
-          </label>
+          <label for="appendix2" style="margin: 0;">Appendix 2 is applicable (vessel under head time charter)</label>
         </div>
 
         <div id="appendix2Fields" style="display: none; margin-top: 14px;">
@@ -284,13 +287,13 @@ Fax: +65 1234 5678"
             </div>
             <div>
               <label for="timeCharterers">Time Charterers</label>
-              <input id="timeCharterers" type="text" placeholder="Name of time charterers" />
+              <input id="timeCharterers" type="text" value="Tankers International Limited" />
               <div class="help">Used in: Pool Agreement</div>
             </div>
           </div>
-          <div class="note">
-            If ticked, <span class="mono">{{TIME_CHARTERER_APPENDIX2}}</span> is replaced with your input.
-            If not ticked, it defaults to <b>Tankers International Limited</b>.
+          <div class="help">
+            Default value: Tankers International Limited. Only if this checkbox is ticked will your input be used;
+            otherwise the document uses the default.
           </div>
         </div>
       </div>
@@ -300,12 +303,7 @@ Fax: +65 1234 5678"
         <label for="bankingDetail">Banking Details</label>
         <textarea
           id="bankingDetail"
-          placeholder="Paste complete banking details here, e.g.:
-Bank Name: HSBC Singapore
-Bank Address: 21, Collyer Quay, Singapore, 049320
-Account Number: 123-456789-001
-SWIFT Code: HSBCSGSG
-IBAN: GB29 NWBK 6016 1331 9268 19"
+          placeholder="Paste complete banking details here, e.g.:&#10;Bank Name: HSBC Singapore&#10;Bank Address: 21, Collyer Quay, Singapore, 049320&#10;Account Number: 123-456789-001&#10;SWIFT Code: HSBCSGSG&#10;IBAN: GB29 NWBK 6016 1331 9268 19"
         ></textarea>
         <div class="help">Used in: TCP</div>
       </div>
@@ -328,127 +326,117 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
             <div style="font-weight: 650; margin-bottom: 8px;">Speed (knots)</div>
 
             <label for="lfs">Laden Full Speed</label>
-            <input id="lfs" type="number" step="0.1" value="14.5" />
+            <input id="lfs" type="text" inputmode="decimal" value="14.5" />
             <div class="help">Placeholder: <span class="mono">{{LFS}}</span></div>
 
             <div class="hr"></div>
 
             <label for="les">Laden Economical Speed</label>
-            <input id="les" type="number" step="0.1" value="12.5" />
+            <input id="les" type="text" inputmode="decimal" value="12.5" />
             <div class="help">Placeholder: <span class="mono">{{LES}}</span></div>
 
             <div class="hr"></div>
 
             <label for="bfs">Ballast Full Speed</label>
-            <input id="bfs" type="number" step="0.1" value="15.5" />
+            <input id="bfs" type="text" inputmode="decimal" value="15.5" />
             <div class="help">Placeholder: <span class="mono">{{BFS}}</span></div>
 
             <div class="hr"></div>
 
             <label for="bes">Ballast Economical Speed</label>
-            <input id="bes" type="number" step="0.1" value="12.5" />
+            <input id="bes" type="text" inputmode="decimal" value="12.5" />
             <div class="help">Placeholder: <span class="mono">{{BES}}</span></div>
 
             <div class="hr"></div>
 
             <label for="sss">Super Slow Speed</label>
-            <input id="sss" type="number" step="0.1" value="10.0" />
+            <input id="sss" type="text" inputmode="decimal" value="10.0" />
             <div class="help">Placeholder: <span class="mono">{{SSS}}</span></div>
           </div>
 
           <div>
-            <div style="font-weight: 650; margin-bottom: 8px;">
-              Consumption (MT/day) <span class="req">*</span>
-            </div>
+            <div style="font-weight: 650; margin-bottom: 8px;">Consumption (MT/day) <span class="req">*</span></div>
 
             <label for="lfc">Laden Full Consumption <span class="req">*</span></label>
-            <input id="lfc" type="number" step="0.1" placeholder="e.g., 78.5" required />
+            <input id="lfc" type="text" inputmode="decimal" placeholder="e.g., 78.5" required />
             <div class="help">Placeholder: <span class="mono">{{LFC}}</span></div>
 
             <div class="hr"></div>
 
             <label for="lec">Laden Economical Consumption <span class="req">*</span></label>
-            <input id="lec" type="number" step="0.1" placeholder="e.g., 48.0" required />
+            <input id="lec" type="text" inputmode="decimal" placeholder="e.g., 48.0" required />
             <div class="help">Placeholder: <span class="mono">{{LEC}}</span></div>
 
             <div class="hr"></div>
 
             <label for="bfc">Ballast Full Consumption <span class="req">*</span></label>
-            <input id="bfc" type="number" step="0.1" placeholder="e.g., 68.0" required />
+            <input id="bfc" type="text" inputmode="decimal" placeholder="e.g., 68.0" required />
             <div class="help">Placeholder: <span class="mono">{{BFC}}</span></div>
 
             <div class="hr"></div>
 
             <label for="bec">Ballast Economical Consumption <span class="req">*</span></label>
-            <input id="bec" type="number" step="0.1" placeholder="e.g., 45.0" required />
+            <input id="bec" type="text" inputmode="decimal" placeholder="e.g., 45.0" required />
             <div class="help">Placeholder: <span class="mono">{{BEC}}</span></div>
 
             <div class="hr"></div>
 
             <label for="ssc">Super Slow Consumption <span class="req">*</span></label>
-            <input id="ssc" type="number" step="0.1" placeholder="e.g., 32.0" required />
+            <input id="ssc" type="text" inputmode="decimal" placeholder="e.g., 32.0" required />
             <div class="help">Placeholder: <span class="mono">{{SSC}}</span></div>
           </div>
         </div>
 
         <div class="hr"></div>
 
+        <!-- 1st line: Check templates + inline result -->
+        <div class="btnrow">
+          <button id="checkBtn" class="secondary smallbtn" type="button">Check Template Links</button>
+          <span id="checkInline" class="inlineResult"></span>
+        </div>
+
+        <!-- 2nd line: Generate -->
         <div class="btnrow">
           <button id="generateBtn" class="primary" type="button">Generate All 4 Documents</button>
+        </div>
+
+        <!-- ZIP download (shown after generation) -->
+        <div id="zipRow" class="btnrow" style="display: none;">
+          <button id="zipBtn" class="secondary" type="button">Download All (ZIP)</button>
+        </div>
+
+        <!-- 3rd line: Clear downloads -->
+        <div class="btnrow">
           <button id="clearBtn" class="secondary" type="button">Clear Downloads</button>
-          <button id="checkBtn" class="secondary smallbtn" type="button">Check Template Links</button>
         </div>
 
         <div id="error" class="error" style="display: none;"></div>
         <div id="status" class="status" style="display: none;"></div>
 
         <div id="downloads" class="downloads" style="display: none;"></div>
-
-        <div class="note">
-          <span class="warn">If you see a 404 for a template:</span> it usually means the file is not in the
-          same folder as <span class="mono">index.html</span> on GitHub Pages.
-          This page now tries multiple locations automatically:
-          <span class="mono">(same folder → ./same folder → templates/ → GitHub raw)</span>.
-        </div>
-
-        <div class="note">
-          <span class="warn">If you see "docxtemplater is not a constructor":</span> your browser loaded a
-          build where the constructor is exposed under a different name (for example
-          <span class="mono">window.docxtemplater.default</span>). This page now auto-detects the constructor.
-        </div>
-      </div>
-
-      <div class="sub" style="margin-top: 18px;">
-        Templates are fetched from this repo (same-origin when deployed on GitHub Pages), with a fallback to
-        GitHub raw URLs.
       </div>
     </div>
 
     <!-- Libraries (browser usage) -->
-    <!-- Official docs show the cdnjs build; we keep it, but our code auto-detects the constructor shape. -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.66.4/docxtemplater.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pizzip@3.2.0/dist/pizzip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pizzip@3.2.0/dist/pizzip-utils.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
     <script>
       // ---------------------------------------------------------------------------
       // Templates
       // ---------------------------------------------------------------------------
-      // 404 happens when the template files are not reachable at the relative URL.
-      // To be resilient (especially in previews / when files live under /templates),
-      // we try multiple candidate URLs and fall back to raw.githubusercontent.com.
 
-      const REPO_RAW_BASE =
-        "https://raw.githubusercontent.com/tuka-2000/Pool_Document_Generator/main/";
+      const REPO_RAW_BASE = "https://raw.githubusercontent.com/tuka-2000/Pool_Document_Generator/main/";
+      const DEFAULT_TIME_CHARTERER = "Tankers International Limited";
 
-      // IMPORTANT:
-      // - `file` is the URL-encoded filename (spaces encoded as %20)
-      // - We will attempt:
-      //   1) file
-      //   2) ./file
-      //   3) templates/file
-      //   4) REPO_RAW_BASE + file
+      // NOTE: use RegExp strings to avoid regex-literal corruption by line endings.
+      const RE_NEWLINE = new RegExp("\\r?\\n");
+      const RE_NON_DIGITS = new RegExp("[^0-9]", "g");
+      const RE_SAFE_VESSEL = new RegExp("[^a-z0-9\\- _]", "gi");
+
       const TEMPLATES = [
         {
           key: "additional_clauses",
@@ -474,9 +462,10 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
       const el = (id) => document.getElementById(id);
 
       const state = {
-        downloads: [], // { key, label, filename, blob, url }
+        downloads: [],
         docxtemplaterCtor: null,
         docxtemplaterCtorLabel: null,
+        lastVesselName: "",
       };
 
       function setError(msg) {
@@ -501,6 +490,14 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         s.textContent = msg;
       }
 
+      function setCheckInline(text, kind) {
+        const c = el("checkInline");
+        c.textContent = text || "";
+        c.classList.remove("ok", "bad");
+        if (kind === "ok") c.classList.add("ok");
+        if (kind === "bad") c.classList.add("bad");
+      }
+
       function revokeDownloads() {
         for (const d of state.downloads) {
           try {
@@ -510,13 +507,23 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         state.downloads = [];
       }
 
+      function setZipRowVisible(on) {
+        const row = el("zipRow");
+        if (!row) return;
+        row.style.display = on ? "flex" : "none";
+      }
+
       function renderDownloads() {
         const box = el("downloads");
         box.innerHTML = "";
+
         if (!state.downloads.length) {
           box.style.display = "none";
+          setZipRowVisible(false);
           return;
         }
+
+        setZipRowVisible(true);
         box.style.display = "grid";
 
         for (const d of state.downloads) {
@@ -549,22 +556,7 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
       // Library health checks
       // ---------------------------------------------------------------------------
 
-      function describeValue(v) {
-        if (v === null) return "null";
-        if (v === undefined) return "undefined";
-        const t = typeof v;
-        if (t === "function") return "function";
-        if (t !== "object") return t;
-        try {
-          return `object keys=[${Object.keys(v).slice(0, 15).join(",")}${Object.keys(v).length > 15 ? ",…" : ""}]`;
-        } catch (_) {
-          return "object";
-        }
-      }
-
       function pickDocxtemplaterConstructorFromGlobals(globals) {
-        // We keep this function pure so we can unit-test it.
-        // It returns { ctor, label } or null.
         const candidates = [];
 
         const direct = globals && globals.docxtemplater;
@@ -572,14 +564,12 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
           candidates.push({ ctor: direct, label: "window.docxtemplater" });
         }
 
-        // Some bundles expose { default: Docxtemplater } or { Docxtemplater: Docxtemplater }
         if (direct && typeof direct === "object") {
           for (const key of ["default", "Docxtemplater", "docxtemplater"]) {
             if (typeof direct[key] === "function") {
               candidates.push({ ctor: direct[key], label: `window.docxtemplater.${key}` });
             }
           }
-          // As a last resort, scan function-valued keys
           try {
             for (const [k, v] of Object.entries(direct)) {
               if (typeof v === "function") {
@@ -594,13 +584,11 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
           candidates.push({ ctor: alt, label: "window.Docxtemplater" });
         }
 
-        // Historical name used in some builds (old docxtemplater-build repo)
         const docxgen = globals && globals.Docxgen;
         if (typeof docxgen === "function") {
           candidates.push({ ctor: docxgen, label: "window.Docxgen" });
         }
 
-        // Prefer stable labels first
         const preferred = [
           "window.docxtemplater",
           "window.Docxtemplater",
@@ -621,14 +609,9 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
 
         const found = pickDocxtemplaterConstructorFromGlobals(window);
         if (!found) {
-          const msg =
-            "Docxtemplater library is not available in this page.\n\n" +
-            "Troubleshooting:\n" +
-            "• If you are testing on a corporate network, cdnjs may be blocked.\n" +
-            "• Confirm this page can reach https://cdnjs.cloudflare.com/... in the browser.\n" +
-            "• If blocked, we can self-host the JS files in the repo.\n\n" +
-            `Diagnostics: window.docxtemplater=${describeValue(window.docxtemplater)}, window.Docxtemplater=${describeValue(window.Docxtemplater)}`;
-          throw new Error(msg);
+          throw new Error(
+            "Docxtemplater library is not available in this page. Please make sure the page can load the Docxtemplater script (CDN not blocked), then try again."
+          );
         }
 
         state.docxtemplaterCtor = found.ctor;
@@ -636,12 +619,17 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         return found.ctor;
       }
 
+      function ensureJSZip() {
+        if (typeof JSZip !== "function") {
+          throw new Error("JSZip library is not available. Please ensure the JSZip script can be loaded.");
+        }
+      }
+
       // ---------------------------------------------------------------------------
       // Helpers
       // ---------------------------------------------------------------------------
 
       function londonIsoToday() {
-        // YYYY-MM-DD in London time
         const parts = new Intl.DateTimeFormat("en-CA", {
           timeZone: "Europe/London",
           year: "numeric",
@@ -668,14 +656,14 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
 
       function normalizeOneDecimal(v) {
         if (v === "" || v == null) return "";
-        const n = Number(v);
+        const n = Number(String(v).trim());
         if (!Number.isFinite(n)) return "";
         return n.toFixed(1);
       }
 
       function normalizeWholeNumberWithSeparators(v) {
         if (!v) return "";
-        const digits = String(v).replace(/[^0-9]/g, "");
+        const digits = String(v).replace(RE_NON_DIGITS, "");
         if (!digits) return "";
         const n = Number(digits);
         if (!Number.isFinite(n)) return "";
@@ -686,7 +674,7 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         const raw = (address || "").trim();
         if (!raw) return "";
         const lines = raw
-          .split(/\r?\n/)
+          .split(RE_NEWLINE)
           .map((s) => s.trim())
           .filter(Boolean);
         const lastLine = lines[lines.length - 1] || "";
@@ -698,12 +686,11 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
       }
 
       function safeFilename(pattern, vesselName) {
-        const safeVessel = (vesselName || "Vessel").replace(/[^a-z0-9\- _]/gi, "");
+        const safeVessel = (vesselName || "Vessel").replace(RE_SAFE_VESSEL, "");
         return pattern.replace("{{VESSEL_NAME}}", safeVessel);
       }
 
       function candidateTemplateUrls(file) {
-        // Keep ordering: most likely first.
         return [file, `./${file}`, `templates/${file}`, `${REPO_RAW_BASE}${file}`];
       }
 
@@ -733,14 +720,9 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         }
 
         const status = lastErr && (lastErr.status || lastErr.statusCode);
-        const msg =
-          `Ajax error for ${tpl.file}: status ${status || "(unknown)"}. ` +
-          `Tried: ${urls.join(" | ")}. ` +
-          `\n\nFix: ensure the file exists in the same folder as index.html on GitHub Pages, ` +
-          `or place it under /templates/.`;
-        const e = new Error(msg);
-        e.cause = lastErr;
-        throw e;
+        throw new Error(
+          `Template not reachable: ${tpl.file} (status ${status || "unknown"}). Tried: ${urls.join(" | ")}`
+        );
       }
 
       // ---------------------------------------------------------------------------
@@ -759,7 +741,7 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
 
         const computedTimeCharterer = inputs.appendix2Applicable
           ? (inputs.timeCharterers || "").trim()
-          : "Tankers International Limited";
+          : DEFAULT_TIME_CHARTERER;
 
         const participantCountry = getCountryFromAddress(inputs.participantAddress);
 
@@ -802,25 +784,12 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         const zip = new PizZip(binaryContent);
 
         const DocxtemplaterCtor = ensureDocxtemplaterConstructor();
-
-        let doc;
-        try {
-          doc = new DocxtemplaterCtor(zip, {
-            paragraphLoop: true,
-            linebreaks: true,
-            delimiters: { start: "{{", end: "}}" },
-            nullGetter: () => "",
-          });
-        } catch (e) {
-          // Extra diagnostics if a candidate isn't constructable.
-          const msg =
-            `Docxtemplater constructor failed (${state.docxtemplaterCtorLabel || "unknown"}).\n` +
-            `Original error: ${String(e && e.message ? e.message : e)}\n\n` +
-            `Diagnostics: window.docxtemplater=${describeValue(window.docxtemplater)}, window.Docxtemplater=${describeValue(window.Docxtemplater)}`;
-          const err = new Error(msg);
-          err.cause = e;
-          throw err;
-        }
+        const doc = new DocxtemplaterCtor(zip, {
+          paragraphLoop: true,
+          linebreaks: true,
+          delimiters: { start: "{{", end: "}}" },
+          nullGetter: () => "",
+        });
 
         doc.render(data);
         return doc.toBlob();
@@ -872,6 +841,8 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
           ssc: el("ssc").value,
         };
 
+        state.lastVesselName = (inputs.vesselName || "").trim();
+
         const missing = validateRequired(inputs);
         if (missing.length) {
           setError("Please fill in all required fields (marked with *)");
@@ -882,23 +853,16 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
         btn.disabled = true;
 
         try {
-          // Force constructor resolution early for a cleaner error.
-          const ctor = ensureDocxtemplaterConstructor();
-          setStatus(`Docxtemplater ready (${state.docxtemplaterCtorLabel}). Starting generation...`);
-          void ctor; // (lint friendly)
+          ensureDocxtemplaterConstructor();
+          ensureJSZip();
 
           const out = [];
 
           for (let i = 0; i < TEMPLATES.length; i++) {
             const t = TEMPLATES[i];
-            setStatus(`(${i + 1}/${TEMPLATES.length}) Downloading template: ${t.label}...`);
+            setStatus(`(${i + 1}/${TEMPLATES.length}) Generating: ${t.label}...`);
 
-            const { content: binaryContent, url: usedUrl } = await loadTemplateBinary(t);
-
-            setStatus(
-              `(${i + 1}/${TEMPLATES.length}) Replacing placeholders: ${t.label}... (loaded from: ${usedUrl})`
-            );
-
+            const { content: binaryContent } = await loadTemplateBinary(t);
             const data = buildDataForDoc(t.key, inputs);
             const blob = generateDocxFromBinaryContent(binaryContent, data);
 
@@ -909,7 +873,35 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
 
           state.downloads = out;
           renderDownloads();
-          setStatus("Done. Click Download for each file.");
+          setStatus("Done. Download each file, or use Download All (ZIP). ");
+        } catch (err) {
+          console.error(err);
+          setError(String(err && err.message ? err.message : err));
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      async function onDownloadZip() {
+        setError("");
+        if (!state.downloads.length) return;
+
+        const btn = el("zipBtn");
+        btn.disabled = true;
+
+        try {
+          ensureJSZip();
+          setStatus("Creating ZIP...");
+
+          const zip = new JSZip();
+          for (const d of state.downloads) {
+            zip.file(d.filename, d.blob);
+          }
+
+          const zipBlob = await zip.generateAsync({ type: "blob" });
+          const zipName = safeFilename("Pool Documents - {{VESSEL_NAME}}.zip", state.lastVesselName);
+          saveAs(zipBlob, zipName);
+          setStatus("ZIP downloaded.");
         } catch (err) {
           console.error(err);
           setError(String(err && err.message ? err.message : err));
@@ -927,27 +919,29 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
 
       async function onCheckTemplates() {
         setError("");
-        setStatus("Checking template links...");
+        setStatus("");
+        setCheckInline("Checking...", "");
+
+        const btn = el("checkBtn");
+        btn.disabled = true;
 
         try {
-          // Also validate Docxtemplater availability during checks.
           const found = pickDocxtemplaterConstructorFromGlobals(window);
           if (!found) {
             throw new Error(
-              "Docxtemplater is not available. This usually means the docxtemplater <script> failed to load (often a 404 due to a non-existent cdnjs version, or a blocked CDN). If needed, we can self-host the JS files in the repo."
+              "Docxtemplater library is not available. Please ensure the Docxtemplater script can be loaded."
             );
           }
 
           for (let i = 0; i < TEMPLATES.length; i++) {
             const t = TEMPLATES[i];
             const urls = candidateTemplateUrls(t.file);
-            setStatus(`Checking: ${t.label}...`);
 
-            let okUrl = null;
+            let ok = false;
             for (const u of urls) {
               try {
                 await loadBinaryFromUrl(u);
-                okUrl = u;
+                ok = true;
                 break;
               } catch (e) {
                 const status = e && (e.status || e.statusCode);
@@ -956,15 +950,18 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
               }
             }
 
-            if (!okUrl) {
-              throw new Error(`Template not reachable: ${t.file} (tried: ${urls.join(" | ")})`);
+            if (!ok) {
+              throw new Error(`Template not reachable: ${t.label} (${t.file})`);
             }
           }
-          setStatus(`All templates are reachable. Docxtemplater: ${found.label}`);
+
+          setCheckInline("All templates reachable", "ok");
         } catch (e) {
           console.error(e);
+          setCheckInline("Check failed", "bad");
           setError(String(e && e.message ? e.message : e));
-          setStatus("");
+        } finally {
+          btn.disabled = false;
         }
       }
 
@@ -978,14 +975,16 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
 
         el("agreementDate").addEventListener("change", () => {
           const iso = el("agreementDate").value;
-          el("agreementDateHelp").textContent =
-            `Used in: All documents • Output format: ${formatLongLondonDate(iso) || "(select a date)"}`;
+          el("agreementDateHelp").textContent = `Used in: All documents • Output format: ${
+            formatLongLondonDate(iso) || "(select a date)"
+          }`;
         });
 
         el("participantAddress").addEventListener("input", () => {
           const c = getCountryFromAddress(el("participantAddress").value);
-          el("countryHelp").textContent =
-            `Used in: Pool Agreement, TCP • Country detected for TCP: ${c || "(not detected)"}`;
+          el("countryHelp").textContent = `Used in: Pool Agreement, TCP • Country detected for TCP: ${
+            c || "(not detected)"
+          }`;
         });
 
         el("insuredValue").addEventListener("input", (ev) => {
@@ -993,52 +992,102 @@ IBAN: GB29 NWBK 6016 1331 9268 19"
           ev.target.value = v;
         });
 
+        // Format all Section 7 numeric fields to 1 decimal on blur
+        const oneDecIds = ["lfs", "les", "bfs", "bes", "sss", "lfc", "lec", "bfc", "bec", "ssc"];
+        for (const id of oneDecIds) {
+          const input = el(id);
+          if (!input) continue;
+          input.addEventListener("blur", () => {
+            const nv = normalizeOneDecimal(input.value);
+            if (nv) input.value = nv;
+          });
+        }
+
         el("appendix2").addEventListener("change", () => {
           const on = el("appendix2").checked;
           el("appendix2Fields").style.display = on ? "block" : "none";
+
+          const tc = el("timeCharterers");
+          if (!tc.value || !tc.value.trim()) tc.value = DEFAULT_TIME_CHARTERER;
           if (!on) {
+            tc.value = DEFAULT_TIME_CHARTERER;
             el("headTcpDate").value = todayIso;
-            el("timeCharterers").value = "";
           }
         });
 
+        el("timeCharterers").value = DEFAULT_TIME_CHARTERER;
+
         el("generateBtn").addEventListener("click", onGenerate);
+        el("zipBtn").addEventListener("click", onDownloadZip);
         el("clearBtn").addEventListener("click", onClearDownloads);
         el("checkBtn").addEventListener("click", onCheckTemplates);
 
-        // Initial diagnostics (non-fatal)
-        try {
-          const found = pickDocxtemplaterConstructorFromGlobals(window);
-          if (found) {
-            setStatus(`Docxtemplater detected: ${found.label}`);
-          } else {
-            setStatus(
-              "Docxtemplater not detected yet. If generation fails, click 'Check Template Links' for diagnostics."
-            );
-          }
-        } catch (_) {
-          // ignore
-        }
+        renderDownloads();
       }
 
       // ---------------------------------------------------------------------------
-      // Very small self-tests (keep existing, add new)
+      // Very small self-tests (kept, plus a couple more)
       // ---------------------------------------------------------------------------
       console.assert(formatLongLondonDate("2025-06-01") === "01 June 2025", "date format");
       console.assert(normalizeOneDecimal("14") === "14.0", "one decimal");
+      console.assert(normalizeOneDecimal("78.50") === "78.5", "one decimal trim");
       console.assert(normalizeWholeNumberWithSeparators("85000000") === "85,000,000", "separators");
       console.assert(
         candidateTemplateUrls("Additional%20Clauses.docx")[3] === REPO_RAW_BASE + "Additional%20Clauses.docx",
         "candidateTemplateUrls raw fallback"
       );
 
-      // New test: constructor picker should find 'default' if that's where the constructor lives
       (function () {
         function Fake() {}
         const globals = { docxtemplater: { default: Fake } };
         const picked = pickDocxtemplaterConstructorFromGlobals(globals);
         console.assert(picked && picked.ctor === Fake, "constructor picker finds window.docxtemplater.default");
       })();
+
+      (function () {
+        const base = {
+          agreementDateIso: "2025-06-01",
+          vesselName: "MT TEST",
+          classificationSociety: "DNV",
+          participantName: "ABC",
+          participantAddress: "Addr\\nSingapore",
+          noticeDetail: "",
+          headTcpDateIso: "2025-06-02",
+          bankingDetail: "",
+          insuredValue: "",
+          lfs: "14.5",
+          lfc: "78.5",
+          les: "12.5",
+          lec: "48.0",
+          bfs: "15.5",
+          bfc: "68.0",
+          bes: "12.5",
+          bec: "45.0",
+          sss: "10.0",
+          ssc: "32.0",
+          appendix2Applicable: false,
+          timeCharterers: "SHOULD NOT USE",
+        };
+
+        const notApplicable = buildDataForDoc("pool_agreement", base);
+        console.assert(
+          notApplicable.TIME_CHARTERER_APPENDIX2 === DEFAULT_TIME_CHARTERER,
+          "appendix2 off -> default time charterer"
+        );
+
+        const applicable = buildDataForDoc("pool_agreement", {
+          ...base,
+          appendix2Applicable: true,
+          timeCharterers: "My Charterer",
+        });
+        console.assert(
+          applicable.TIME_CHARTERER_APPENDIX2 === "My Charterer",
+          "appendix2 on -> use input"
+        );
+      })();
+
+      console.assert("A\\nB".split(RE_NEWLINE).length === 2, "newline regex split");
+      console.assert(getCountryFromAddress("Line1\\nSingapore") === "Singapore", "country last line");
 
       init();
     </script>
