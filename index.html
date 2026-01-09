@@ -255,11 +255,12 @@
 
         <div class="hr"></div>
 
-        <label for="participantAddress">Participant Address</label>
-        <textarea id="participantAddress" placeholder="Complete registered address"></textarea>
-        <div class="help" id="countryHelp">
-          Used in: Pool Agreement, TCP • Country detected for TCP: (not detected)
-        </div>
+        <label for="participantAddress">Participant Address (last line needs to be &quot;Country&quot; to be used in TCP)</label>
+        <textarea
+          id="participantAddress"
+          placeholder="Complete registered address.&#10;Last line must be &quot;Country&quot; (used in TCP)"
+        ></textarea>
+        <div class="help" id="countryHelp">Used in: Pool Agreement, TCP • TCP Country (from last line): (not detected)</div>
 
         <div class="hr"></div>
 
@@ -432,10 +433,12 @@
       const REPO_RAW_BASE = "https://raw.githubusercontent.com/tuka-2000/Pool_Document_Generator/main/";
       const DEFAULT_TIME_CHARTERER = "Tankers International Limited";
 
-      // NOTE: use RegExp strings to avoid regex-literal corruption by line endings.
+      // Use escaped strings in RegExp constructors (never put real newlines inside JS literals).
       const RE_NEWLINE = new RegExp("\\r?\\n");
       const RE_NON_DIGITS = new RegExp("[^0-9]", "g");
-      const RE_SAFE_VESSEL = new RegExp("[^a-z0-9\\- _]", "gi");
+      const RE_SAFE_VESSEL = new RegExp("[^a-z0-9 _-]", "gi");
+      const RE_HAS_LETTER = new RegExp("[A-Za-z]");
+      const RE_TRAILING_POSTAL = new RegExp("\\s*[0-9][0-9\\s-]*$");
 
       const TEMPLATES = [
         {
@@ -673,16 +676,30 @@
       function getCountryFromAddress(address) {
         const raw = (address || "").trim();
         if (!raw) return "";
+
+        // Per UI instruction: the LAST non-empty LINE should be the Country for TCP.
         const lines = raw
           .split(RE_NEWLINE)
-          .map((s) => s.trim())
+          .map((s) => String(s).trim())
           .filter(Boolean);
+
         const lastLine = lines[lines.length - 1] || "";
-        const commaParts = lastLine
+        if (!lastLine) return "";
+
+        // If the last line contains commas, take the last meaningful token.
+        const parts = lastLine
           .split(",")
-          .map((s) => s.trim())
+          .map((s) => String(s).trim())
           .filter(Boolean);
-        return commaParts[commaParts.length - 1] || lastLine;
+
+        for (let i = parts.length - 1; i >= 0; i--) {
+          const t = parts[i];
+          const cleaned = t.replace(RE_TRAILING_POSTAL, "").trim();
+          if (cleaned && RE_HAS_LETTER.test(cleaned)) return cleaned;
+          if (RE_HAS_LETTER.test(t)) return t;
+        }
+
+        return lastLine;
       }
 
       function safeFilename(pattern, vesselName) {
@@ -982,7 +999,7 @@
 
         el("participantAddress").addEventListener("input", () => {
           const c = getCountryFromAddress(el("participantAddress").value);
-          el("countryHelp").textContent = `Used in: Pool Agreement, TCP • Country detected for TCP: ${
+          el("countryHelp").textContent = `Used in: Pool Agreement, TCP • TCP Country (from last line): ${
             c || "(not detected)"
           }`;
         });
@@ -1026,7 +1043,7 @@
       }
 
       // ---------------------------------------------------------------------------
-      // Very small self-tests (kept, plus a couple more)
+      // Very small self-tests (keep existing semantics; fix broken literals)
       // ---------------------------------------------------------------------------
       console.assert(formatLongLondonDate("2025-06-01") === "01 June 2025", "date format");
       console.assert(normalizeOneDecimal("14") === "14.0", "one decimal");
@@ -1080,14 +1097,20 @@
           appendix2Applicable: true,
           timeCharterers: "My Charterer",
         });
-        console.assert(
-          applicable.TIME_CHARTERER_APPENDIX2 === "My Charterer",
-          "appendix2 on -> use input"
-        );
+        console.assert(applicable.TIME_CHARTERER_APPENDIX2 === "My Charterer", "appendix2 on -> use input");
       })();
 
       console.assert("A\\nB".split(RE_NEWLINE).length === 2, "newline regex split");
+      console.assert(getCountryFromAddress("Line1\\nLine2\\nSingapore") === "Singapore", "country from last line");
       console.assert(getCountryFromAddress("Line1\\nSingapore") === "Singapore", "country last line");
+      console.assert(
+        getCountryFromAddress("21, Collyer Quay, Singapore, 049320") === "Singapore",
+        "country ignores trailing postal code"
+      );
+      console.assert(
+        getCountryFromAddress("21, Collyer Quay\\nSingapore 049320") === "Singapore",
+        "country strips postal suffix"
+      );
 
       init();
     </script>
