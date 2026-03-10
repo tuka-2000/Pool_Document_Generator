@@ -93,31 +93,19 @@
         color: rgba(232, 238, 252, 0.42);
       }
 
-      /* Date inputs: force a white calendar icon (custom SVG) */
+      /* Date inputs: lighter calendar icon */
       input[type="date"] {
-        color-scheme: dark; /* helps Firefox render a light icon */
-        background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2024%2024'%20fill%3D'none'%20stroke%3D'%23ffffff'%20stroke-width%3D'2'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%3E%3Crect%20x%3D'3'%20y%3D'4'%20width%3D'18'%20height%3D'18'%20rx%3D'2'%20ry%3D'2'%2F%3E%3Cline%20x1%3D'16'%20y1%3D'2'%20x2%3D'16'%20y2%3D'6'%2F%3E%3Cline%20x1%3D'8'%20y1%3D'2'%20x2%3D'8'%20y2%3D'6'%2F%3E%3Cline%20x1%3D'3'%20y1%3D'10'%20x2%3D'21'%20y2%3D'10'%2F%3E%3C%2Fsvg%3E");
-        background-repeat: no-repeat;
-        background-position: right 12px center;
-        background-size: 18px 18px;
-        padding-right: 44px;
+        color-scheme: dark;
       }
-      /* Hide the native icon in WebKit so only our white icon shows (still clickable) */
       input[type="date"]::-webkit-calendar-picker-indicator {
-        opacity: 0;
+        filter: invert(1);
+        opacity: 0.95;
         cursor: pointer;
-      }
-      /* Avoid showing two icons in Firefox (it already follows color-scheme) */
-      @supports (-moz-appearance: none) {
-        input[type="date"] {
-          background-image: none;
-          padding-right: 12px;
-        }
       }
 
       /* Make Agreement Date shorter so the calendar icon is easier to notice */
       #agreementDate {
-        width: 220px;
+        width: 260px;
         max-width: 100%;
       }
       .help {
