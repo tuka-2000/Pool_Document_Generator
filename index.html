@@ -376,7 +376,7 @@
 
         <div id="piClubRow" style="display: none; margin-top: 14px;">
           <label for="piClub">P&amp;I Club</label>
-          <input id="piClub" type="text" placeholder="e.g., The London P&amp;I Club" />
+          <input id="piClub" type="text" placeholder="e.g., The London" />
           <div class="help">Used in: Additional Clauses</div>
         </div>
       </div>
@@ -528,7 +528,13 @@
       ];
 
       function getPoolPrefix(poolType) {
-        return poolType === "SUEZMAX" ? "SUEZMAX_" : "";
+        // Templates are now prefixed for clarity in GitHub
+        // VLCC_* for VLCC pool, SUEZMAX_* for Suezmax pool
+        return poolType === "SUEZMAX" ? "SUEZMAX_" : "VLCC_";
+      }
+
+      function getPoolLabel(poolType) {
+        return poolType === "SUEZMAX" ? "Suezmax" : "VLCC";
       }
 
       function getActiveTemplates() {
@@ -971,6 +977,7 @@
           const out = [];
 
           const templates = getActiveTemplates();
+          const poolLabel = getPoolLabel(inputs.poolType);
 
           for (let i = 0; i < templates.length; i++) {
             const t = templates[i];
@@ -980,7 +987,7 @@
             const data = buildDataForDoc(t.key, inputs);
             const blob = generateDocxFromBinaryContent(binaryContent, data);
 
-            const filename = safeFilename(t.out, data.VESSEL_NAME);
+            const filename = poolLabel + " - " + safeFilename(t.out, data.VESSEL_NAME);
             const url = URL.createObjectURL(blob);
             out.push({ key: t.key, label: t.label, filename, blob, url });
           }
@@ -1013,7 +1020,8 @@
           }
 
           const zipBlob = await zip.generateAsync({ type: "blob" });
-          const zipName = safeFilename("Pool Documents - {{VESSEL_NAME}}.zip", state.lastVesselName);
+          const poolLabel = getPoolLabel(state.poolType);
+          const zipName = safeFilename(poolLabel + " - Pool Documents - {{VESSEL_NAME}}.zip", state.lastVesselName);
           saveAs(zipBlob, zipName);
           setStatus("ZIP downloaded.");
         } catch (err) {
@@ -1071,10 +1079,10 @@
             }
           }
 
-          setCheckInline("All templates reachable", "ok");
+          setCheckInline("All " + getPoolLabel(getSelectedPoolType()) + " templates reachable", "ok");
         } catch (e) {
           console.error(e);
-          setCheckInline("Check failed", "bad");
+          setCheckInline(getPoolLabel(getSelectedPoolType()) + " check failed", "bad");
           setError(String(e && e.message ? e.message : e));
         } finally {
           btn.disabled = false;
