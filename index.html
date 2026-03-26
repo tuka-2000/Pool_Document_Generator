@@ -576,6 +576,7 @@
         docxtemplaterCtorLabel: null,
         lastVesselName: "",
         poolType: "VLCC",
+        cacheBuster: Date.now(),
       };
 
       function setError(msg) {
@@ -814,8 +815,20 @@
         return pattern.replace("{{VESSEL_NAME}}", safeVessel);
       }
 
+      function withCacheBuster(url) {
+        const sep = url.includes("?") ? "&" : "?";
+        return `${url}${sep}v=${state.cacheBuster}`;
+      }
+
       function candidateTemplateUrls(file) {
-        return [file, `./${file}`, `templates/${file}`, `${REPO_RAW_BASE}${file}`];
+        // Prefer GitHub raw (single source of truth) and cache-bust to avoid stale templates.
+        const raw = `${REPO_RAW_BASE}${file}`;
+        return [
+          withCacheBuster(raw),
+          withCacheBuster(`templates/${file}`),
+          withCacheBuster(`./${file}`),
+          withCacheBuster(file),
+        ];
       }
 
       function loadBinaryFromUrl(url) {
@@ -946,6 +959,9 @@
         setError("");
         setStatus("");
 
+        // Cache-bust template URLs on each generation to avoid stale files
+        state.cacheBuster = Date.now();
+
         revokeDownloads();
         renderDownloads();
 
@@ -1060,6 +1076,9 @@
         setStatus("");
         setCheckInline("Checking...", "");
 
+        // Cache-bust template URLs on each check to avoid stale files
+        state.cacheBuster = Date.now();
+
         const btn = el("checkBtn");
         btn.disabled = true;
 
@@ -1111,9 +1130,32 @@
         // Pool selector (VLCC / Suezmax)
         setSelectedPoolType(state.poolType);
         const applyPoolType = () => {
+          const prevPoolType = state.poolType;
           state.poolType = getSelectedPoolType();
           const piRow = el("piClubRow");
           if (piRow) piRow.style.display = state.poolType === "SUEZMAX" ? "block" : "none";
+
+          // Speed defaults differ by pool:
+          // - VLCC: keep existing defaults (LFS 14.5, BFS 15.5)
+          // - Suezmax: use LFS 14.0, BFS 15.0
+          const SPEED_DEFAULTS = {
+            VLCC: { lfs: "14.5", bfs: "15.5" },
+            SUEZMAX: { lfs: "14.0", bfs: "15.0" },
+          };
+
+          const lfsEl = el("lfs");
+          const bfsEl = el("bfs");
+          if (lfsEl && bfsEl) {
+            const prevD = SPEED_DEFAULTS[prevPoolType] || SPEED_DEFAULTS.VLCC;
+            const nextD = SPEED_DEFAULTS[state.poolType] || SPEED_DEFAULTS.VLCC;
+
+            const curLfs = String(lfsEl.value || "").trim();
+            const curBfs = String(bfsEl.value || "").trim();
+
+            // Only auto-switch if the user hasn't customized the values (or if blank)
+            if (!curLfs || curLfs === prevD.lfs) lfsEl.value = nextD.lfs;
+            if (!curBfs || curBfs === prevD.bfs) bfsEl.value = nextD.bfs;
+          }
 
           // Reset UI feedback when switching pool
           setCheckInline("", "");
